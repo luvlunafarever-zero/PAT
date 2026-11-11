@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robot" content="noindex">
-  <meta name="version" content="2.1">
+  <meta name="version" content="2.0.1">
   <meta name="description" content="Prompt Assembly Tool">
   <!--<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%0A%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2248%22%20fill%3D%22%23009672%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M38%2032%20L60%2050%20L38%2068%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%2210%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E">-->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23009672'/%3E%3Cpath d='M25 35 L50 50 L25 65 M57 65 L75 65' fill='none' stroke='%23ffffff' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
@@ -867,9 +867,7 @@
       flex-shrink: 0; /* 防止按钮被标题挤压 */
     }
 
-    /* 仅放大模板选择卡片标题行的"取消/确认"按钮字号（15px）：
-       介于 chip 模板名（.chip 13px）与标题（.dialog-title 18px）之间，提升操作可读性；
-       选择器限定在 .dialog-card-select-tpl 内部，不影响其他位置的 .v-btn-text */
+    /* 仅中文版的按钮字号使用（15px）：中文内容宽度窄 */
     .dialog-card-select-tpl .tpl-select-actions .v-btn-text {
       font-size: 15px;
     }
@@ -2280,8 +2278,9 @@
       pageTitle: "Prompt Assembler",
       aria_back2TopBtn: "回到顶部",
       
-      // Tab相关
-      tooltip_ResetDefaultBtn: "⛔ 重置所有模板",
+      // ODD TEXT
+      odd_str_character:"字",
+
       
       // 主页面
       txt_MainTab_Title: "问题",
@@ -2329,7 +2328,7 @@
       dialogMsg_SaveTemplate: "将保存模板中的内容",
       dialogMsg_RevertTemplate: "将回退到最近一次已保存的内容",
       dialogMsg_DeleteTemplate: "确定要删除此模板吗？此操作不可恢复。",
-      dialogMsg_AddTab: "确定要创建一个新的模板标签吗？",
+      dialogMsg_AddTab: "确定要创建一个新的模板吗？",
       dialogMsg_ResetDefault: '确定要将所有模板重置为默认配置吗？<br>当前自定义的模板内容将被清除。<br><br><font class="dialog-tips-font"> ※ 默认配置需手动在文件的{DEFAULT_TEMPLATE_CONFIGS}中设定',
       
       // Dialog 按钮
@@ -2386,6 +2385,7 @@
       tooltip_BtnDeleteTemplate: "删除",
       tooltip_BtnRevertTemplateName: "放弃",
       tooltip_CloseManagerBtn: "关闭",
+      tooltip_ResetDefaultBtn: "⛔ 重置所有模板",
 
       // 模板排序界面
       txt_SortPage_Title: "模板排序",
@@ -2803,7 +2803,7 @@
         
         item.innerHTML = `
           <div class="tpl-item-name">${config.name}${isDirty ? '<span class="dirty-dot"></span>' : ''}</div>
-          <div class="tpl-item-meta"><span>${savedContent.length} 字</span><span class="tpl-item-edit-time">${config.editTime || ''}</span></div>
+          <div class="tpl-item-meta"><span>${savedContent.length} ${TEXTS.odd_str_character}</span><span class="tpl-item-edit-time">${config.editTime || ''}</span></div>
         `;
         item.addEventListener('click', () => selectTemplateInManager(config.tabId));
         tplListEl.appendChild(item);
@@ -3177,7 +3177,7 @@
           <div class="sort-index">${idx + 1}</div>
           <div class="sort-card-main">
             <div class="sort-card-name">${cfg.name}</div>
-            <div class="sort-card-meta">${contentLen} 字</div>
+            <div class="sort-card-meta">${contentLen} ${TEXTS.odd_str_character}</div>
           </div>
           <div class="sort-card-actions">
             <button type="button" class="sort-move-btn move-top" aria-label="${TEXTS.aria_MoveTop} ${cfg.name}" ${idx < INT_TOP_THRESHOLD ? 'disabled' : ''}>

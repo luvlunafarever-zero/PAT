@@ -1,6 +1,10 @@
 # Prompt Assembly Tool (PAT)
 
-**Prompt Assembly Tool** 是一个用于保存和复用常用 Prompt 模板的html小工具。通过将用户输入嵌入到预设的 Prompt 模板中，减少重复步骤，提升与 LLM 交互的效率。
+**Prompt Assembly Tool** 是一个用于保存和复用`常用提示词`的html小工具。
+
+通过将用户输入嵌入到预设的模板中，减少复用内容的重复输入。
+
+适用的提示词场景例如：翻译，探讨方案，给AI的固定规则...etc.
 
 
 ## ✨ 功能特性
@@ -44,14 +48,14 @@
   - 无需构建工具，保持单文件静态 HTML 模式
 
 ### 内置示例模板
+可自定义修改默认模板
 1. **AI-xChk(例** — 用于检查其他 AI 回答的验证模板
 2. **空模板1** — 空白模板，供用户自行填写
 
 ## 🚀 使用方法
 
 ### 直接运行
-本项目为单文件应用，无需安装依赖：
-1. 浏览器打开 `Release/PAT_v2.0.html`（或最新版本）
+本项目为单HTML文件APP，无需安装依赖，浏览器打开放入收藏夹即可方便打开。
 
 ### 基本workflow
 1. **输入问题**：在「问题」标签页输入想问 AI 的内容
@@ -74,14 +78,12 @@
 
 ```
 PAT_html/
-├── Dev/
+├── Dev/                      # 开发中的文件
 │   ├── PAT_dev.html          # 开发版本（可编辑）
-│   ├── PAT_dev_Design.md     # 详细设计文档
-│   └── vibe-coding/          # 开发时的临时文件(提示词/UI原型设计...etc)
-├── Release/
-│   ├── PAT_v1.1.html         # 初期发布版本（请勿直接编辑）
-│   ├── PAT_v1.2.html         # v1.2 多语言版本（请勿直接编辑）
-│   └── PAT_v2.0.html         # v2.0 版本（请勿直接编辑）
+│   └── PAT_dev_Design.md     # 详细设计文档
+├── Release/                  # 多语言发布版本
+│   ├── PAT.en.html           # 英文版
+│   └── PAT.ja.html           # 日文版
 ├── .clinerules               # Cline规则
 ├── PAT_html.code-workspace   # VS Code 工作区配置
 └── README.md                 # 说明文件
@@ -107,7 +109,10 @@ PAT_html/
 
 ## 🌐 多语言支持 (i18n)
 
-本工具支持多语言界面，所有界面文字集中定义在 `TEXTS` 常量中；CJK 字体栈集中管理于 CSS 变量 `--font-sans-cjk`。
+- 所有界面文字集中定义在 `TEXTS` 常量中。
+- CJK 字体栈集中管理于 CSS 变量 `--font-sans-cjk`。
+- 部分css宽度和尺寸数值可能收到不同语言UI表现得影响。
+    - css:`.dialog-card-select-tpl .tpl-select-actions .v-btn-text`
 
 ### 发布其他语言版本
 

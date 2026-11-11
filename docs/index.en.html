@@ -1,0 +1,4246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robot" content="noindex">
+  <meta name="version" content="2.0.1">
+  <meta name="description" content="Prompt Assembly Tool">
+  <!--<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20100%20100%22%3E%0A%20%20%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2248%22%20fill%3D%22%23009672%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M38%2032%20L60%2050%20L38%2068%22%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%2210%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E">-->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%23009672'/%3E%3Cpath d='M25 35 L50 50 L25 65 M57 65 L75 65' fill='none' stroke='%23ffffff' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <title>Prompt Assembler</title>
+  <style>
+    :root {
+      --primary-green: #009672;
+      --primary-dark: #008766;
+      --secondary-green: #34AB8F;
+      --light-green: #99DCCD;
+      --pale-green: #CDEEE6;
+      --bg-tint: #E5F6F2;
+      --bg-gray: #cdcfcf;
+      --white: #FFFFFF;
+      --text-main: #2C3E50;
+      --text-light: #607D8B;
+      --text-light-2: #879aa5;
+      --label-color-inactive: #9E9E9E;
+      --label-color-active: var(--primary-dark);
+      --bottom-line-default: #B2DFDB;
+      --bottom-line-focus: var(--primary-dark);
+      --tab-base-line: #99DCCD;
+      --btn-ripple: rgba(255, 255, 255, 0.3);
+      --divider-color: #008766;
+      --input-bg: #F0FAF7;
+      --dialog-overlay: rgba(0, 0, 0, 0.46);
+      --tooltip-bg: #424242;
+      --fab-hover-ring: #E5E5E5;
+      --drawer-scrim: rgba(220, 220, 220, 0.65);
+      --drawer-app-bar: #F0FAF7;
+      --drawer-app-bar-hover: #CDEEE6;
+      --drawer-shadow: rgba(0, 0, 0, 0.25);
+      --highlight-rose: #D9667A;
+      --dusty-indigo: #6677d9;
+      --pale-rose: #FFEBEE;
+      /* i18n字体（CJK 无衬线）：发布其他语言版本时仅需修改此变量即可统一切换全部中文字体。
+         例：日语版改为 'Hiragino Sans', 'Yu Gothic', 'Noto Sans JP', 'Meiryo'；
+         同时需将 <html lang="zh-CN"> 改为对应语言（如 "ja"） */
+      --font-sans-cjk: 'PingFang SC', 'Microsoft YaHei';
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-gray);
+      /* CJK 部分通过 --font-sans-cjk 变量统一管理（见 :root 中的 i18n 字体说明） */
+      font-family: 'Roboto', 'Helvetica Neue', var(--font-sans-cjk), sans-serif;
+      color: var(--text-main);
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    /* 主区域：响应式宽度适配 */
+    .main-container {
+      width: 66.67%;
+      margin: 0 auto;
+      background-color: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      padding: 0 32px 32px;
+      transition: width 0.3s ease;
+      position: relative; /* 为FAB定位提供参考 */
+    }
+    @media (max-width: 1200px) { .main-container { width: 83.33%; } }
+    @media (max-width: 768px) { .main-container { width: 100%; padding: 0 20px 20px; } }
+
+    .hightlight-font{
+      color: var(--highlight-rose);
+    }
+
+    /* Tabs 切换区域：全宽居中 + 滑动指示器 */
+    .tabs-wrapper {
+      position: relative;
+      display: flex;
+      width: 100%;
+      border-bottom: 2px solid var(--tab-base-line);
+      padding-top: 24px;
+    }
+
+    .tab-btn {
+      flex: 0 0 auto;
+      background: none;
+      border: none;
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text-light);
+      cursor: pointer;
+      text-align: center;
+      position: relative;
+      transition: color 0.2s;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tab-btn:hover { color: var(--primary-green); }
+    .tab-btn.active { color: var(--primary-dark); font-weight: 600; }
+
+    /* 滑动指示器 */
+    .tab-indicator {
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      height: 3px;
+      background-color: var(--primary-dark);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
+      border-radius: 2px 2px 0 0;
+      z-index: 2;
+    }
+
+    /* ========== Reset to Default FAB (Vuetify Style) ========== */
+    .fab-reset-default {
+      position: absolute !important; /* 强制 absolute，防止被其他样式覆盖 */
+      /* overflow: hidden; */
+      left: -20px; /* 定位到main-container左边线外侧 */
+      top: 36px;
+      transform: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--primary-green);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+      z-index: 10;
+      outline: none;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .fab-reset-default:hover {
+      background-color: var(--primary-dark);
+      box-shadow: 0 5px 8px -1px rgba(0,0,0,0.25), 0 8px 12px 0 rgba(0,0,0,0.18), 0 3px 20px 0 rgba(0,0,0,0.14);
+      transform: scale(1.05);
+    }
+
+    .fab-reset-default:active {
+      background-color: #2d9a80;
+      box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14);
+    }
+
+    .fab-reset-default svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Tab 内容区：使用 Grid 堆叠彻底消除纵向跳动 */
+    .tab-content-wrapper {
+      display: grid;
+      grid-template-areas: "stack";
+      overflow: visible; /* 允许 tooltip 溢出显示，动画期间由 JS 临时设为 hidden */
+      padding-top: 20px;
+    }
+
+    .tab-content {
+      grid-area: stack;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+      pointer-events: none;
+      padding: 0 4px;
+    }
+
+    .tab-content.active {
+      opacity: 1;
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    /* 主要功能区域：响应式栅格布局 */
+    .main-section {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: stretch;
+    }
+
+    .main-section .info-card-main {
+      flex: 1 1 83.33%;
+      display: flex;
+      align-items: center;
+      background-color: var(--pale-green);
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--primary-dark);
+      border: 1px solid rgba(0, 150, 114, 0.1);
+      min-height: 36px;
+    }
+
+    .main-section .btn-area {
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px; /* 按钮间距 */
+    }
+
+    /* 设置界面区域：响应式栅格布局 */
+    .settings-section {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 16px;
+      align-items: stretch;
+    }
+
+    .settings-section .info-card-settings {
+      flex: 1 1 83.33%;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--pale-green);
+      border-radius: 6px;
+      padding: 4px 14px;
+      font-size: 13px;
+      color: var(--primary-dark);
+      border: 1px solid rgba(0, 150, 114, 0.1);
+      gap: 0;
+    }
+
+    .settings-section .btn-area {
+      flex: 0 0 auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+      align-items: stretch;  /* 让子元素横向拉伸至容器宽度 */
+    }
+
+    /* 确保按钮填满容器宽度 */
+    .settings-section .btn-area .v-btn {
+      align-self: 100%;
+    }
+
+    /* 中等屏幕：8:4 */
+    @media (max-width: 1200px) {
+      .main-section .info-card-main,
+      .settings-section .info-card-settings {
+        flex: 1 1 66.67%;
+      }
+    }
+
+    /* 小屏幕：6:4 */
+    @media (max-width: 768px) {
+      .main-section .info-card-main,
+      .settings-section .info-card-settings {
+        flex: 1 1 60%;
+      }
+      /* 在小屏幕上调整FAB位置，避免被遮挡 */
+      .fab-reset-default {
+        width: 32px;
+        height: 32px;
+        left: -16px;
+      }
+      /* .fab-reset-default:hover {
+        transform: scale(1.05);
+      } */
+    }
+
+    .info-card-settings .settings-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      min-height: 32px;
+    }
+
+    .settings-divider {
+      height: 1px;
+      background-color: var(--divider-color);
+      margin: 4px 0;
+      opacity: 0.2;
+    }
+
+    .settings-hint {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.5;
+      padding: 2px 0;
+    }
+
+    /* ========== ${user_input} 标记插入按钮 ========== */
+    .insert-mark-tooltip {
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
+
+    .v-btn.insert-mark-btn {
+      min-height: 26px;
+      padding: 3px 12px;
+      font-size: 12px;
+      background-color: #4a58ab; /* 初始较深,白字对比度最高(约6.4:1) */
+      /* 标记本身是代码形式字符串,等宽字体强化"可插入的代码标记"语义 */
+      font-family: Consolas, Monaco, 'Courier New', monospace;
+      letter-spacing: 0;
+    }
+
+    .v-btn.insert-mark-btn:hover {
+      background-color: var(--dusty-indigo); /* hover 提亮(#6677d9),高亮反馈更醒目 */
+    }
+
+    .v-btn.insert-mark-btn:active {
+      background-color: #3d4a96; /* 按下时更深,给出按压反馈 */
+    }
+
+    /* Vuetify flat button 样式 */
+    .v-btn {
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      text-transform: none;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+      user-select: none;
+      outline: none;
+      background-color: var(--primary-dark);
+      color: var(--white);
+      min-height: 32px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .v-btn:hover {
+      background-color: var(--secondary-green);
+      box-shadow: 
+        /* 底部阴影：向下偏移 */
+        0 2px 6px -1px rgba(0, 0, 0, 0.15),
+
+        /* 右侧阴影：向右偏移 */
+        2px 0 6px -1px rgba(0, 0, 0, 0.15),
+
+        /* 顶部阴影：向上偏移 */
+        0 -2px 6px -1px rgba(0, 0, 0, 0.15);
+    }
+
+    .v-btn:active {
+      background-color: #2d9a80;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Ripple 效果 */
+    .v-btn .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-animation 0.6s linear;
+      background-color: var(--btn-ripple);
+      pointer-events: none;
+    }
+
+    @keyframes ripple-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* Textarea 区域：Vuetify Default 风格 */
+    .textarea-wrapper { 
+      position: relative; 
+      margin-top: 8px; 
+    }
+
+    .auto-grow {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--bottom-line-default);
+      border-radius: 4px 4px 0 0;
+      resize: none;
+      outline: none;
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.6;
+      transition: border-color 0.2s, border-width 0.2s, box-shadow 0.25s ease;
+      overflow: hidden;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      padding: 30px 16px 12px;
+    }
+
+    .auto-grow::-webkit-scrollbar { display: none; }
+
+    #main-textarea { min-height: 465px; }
+    .template-textarea {min-height: 400px;}
+
+    /* 焦点状态：底部线条加粗加深 + 顶部/右侧灰色阴影 */
+    .auto-grow:focus {
+      border-bottom: 2px solid var(--bottom-line-focus);
+      box-shadow: 2px -2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    /* 浮动 Label：Vuetify Default 风格 */
+    .floating-label {
+      position: absolute;
+      left: 16px;
+      top: 20px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--label-color-inactive);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      background-color: transparent;
+      padding: 0;
+      z-index: 2;
+      line-height: 1.6;
+    }
+
+    /* 聚焦或有内容时：上浮缩小，与左上对齐 */
+    .auto-grow:focus ~ .floating-label,
+    .auto-grow:not(:placeholder-shown) ~ .floating-label {
+      top: 12px;
+      left: 16px;
+      font-size: 12px;
+      color: var(--label-color-active);
+    }
+
+    /* 失去焦点但有内容时：Label保持位置，颜色恢复为未激活状态 */
+    .auto-grow:not(:focus):not(:placeholder-shown) ~ .floating-label {
+      color: var(--label-color-inactive);
+    }
+
+    /* 隐藏 placeholder，仅用于触发 CSS 状态 */
+    .auto-grow::placeholder { color: transparent; }
+
+    /* ========== 底部 Drawer ========== */
+    .drawer-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--drawer-scrim);
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .drawer-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer-panel {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: calc(100% - 138px);
+      background-color: var(--white);
+      border-radius: 16px 16px 0 0;
+      z-index: 301;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      /* 顶部投射阴影：短而硬的边界阴影 */
+      box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.22);
+    }
+
+    .drawer-overlay.active .drawer-panel {
+      transform: translateY(0);
+    }
+
+    /* Drawer App Bar */
+    .drawer-app-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 28px;
+      background-color: var(--drawer-app-bar);
+      border-radius: 16px 16px 0 0;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--light-green);
+      position: relative;
+      z-index: 2;
+    }
+
+    .drawer-app-bar-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-dark);
+    }
+
+    .drawer-app-bar-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .drawer-icon-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+      transition: background-color 0.2s ease, opacity 0.25s ease;
+      outline: none;
+    }
+
+    #drawerTopBtn {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .drawer-icon-btn:hover {
+      background-color: var(--drawer-app-bar-hover);
+    }
+
+    .drawer-icon-btn:active {
+      background-color: var(--light-green);
+    }
+
+    .drawer-icon-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    #drawerTopBtn svg {
+      width: 27px;
+      height: 27px;
+    }
+
+    #drawerCopyBtn svg {
+      width: 18px;
+      height: 18px;
+      fill: #0047fd;
+    }
+
+    /* Drawer Content */
+    .drawer-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px 36px;
+      background-color: var(--white);
+    }
+
+    .drawer-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .drawer-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .drawer-content::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+
+    /* Outlined Textarea in Drawer */
+    .drawer-textarea-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .drawer-textarea {
+      width: 100%;
+      min-height: 200px;
+      border: 2px solid var(--primary-dark);
+      border-radius: 4px;
+      resize: none;
+      outline: none;
+      background-color: var(--white);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 16px;
+      transition: border-color 0.2s ease;
+      overflow: hidden;
+    }
+
+    .drawer-textarea:focus {
+      border-color: var(--primary-dark);
+    }
+
+    .drawer-textarea-label {
+      position: absolute;
+      left: 12px;
+      top: -10px;
+      background-color: var(--white);
+      padding: 0 4px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary-dark);
+      pointer-events: none;
+    }
+
+    /* ========== 回到顶部 FAB ========== */
+    .fab-back-to-top {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background-color: var(--primary-green);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14), 0 1px 18px 0 rgba(0,0,0,0.12);
+      opacity: 0;
+      transform: scale(0);
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease;
+      z-index: 100;
+      outline: none;
+    }
+
+    .fab-back-to-top.visible {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .fab-back-to-top:hover {
+      background-color: var(--primary-dark);
+      box-shadow: 
+    0 0 0 8px var(--fab-hover-ring),    /* 关键：blur-radius 为 0，spread 控制环粗细 */
+    0 3px 5px -1px rgba(229,229,229,0.2),
+    0 6px 10px 0 rgba(229,229,229,0.14),
+    0 1px 18px 0 rgba(229,229,229,0.12);
+    }
+
+
+    .fab-back-to-top svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* 模板管理界面专用的回到顶部 FAB：
+       mgr-overlay 的 z-index(150) 高于主 fabTop(100)，管理界面打开时主FAB会被遮罩挡住，
+       因此该独立按钮的 z-index 需高于 mgr-overlay(150)；
+       同时低于 dialog(200)，避免盖住确认对话框 */
+    #mgrFabTop {
+      z-index: 160;
+    }
+
+    /* ========== Dialog 确认框 ========== */
+    .dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--dialog-overlay);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .dialog-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .dialog-card {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 11px 15px -7px rgba(0,0,0,0.2), 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12);
+      min-width: 320px;
+      max-width: 90%;
+      padding: 24px;
+      transform: scale(0.8);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+
+    .dialog-overlay.active .dialog-card {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    /* 点击 overlay 时的弹性缩放 */
+    .dialog-overlay.shake .dialog-card {
+      animation: dialog-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    @keyframes dialog-shake {
+      0%, 100% { transform: scale(1); }
+      30% { transform: scale(1.02); }
+      50% { transform: scale(0.98); }
+      70% { transform: scale(1.01); }
+    }
+
+    .dialog-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--primary-dark);
+      margin-bottom: 16px;
+    }
+
+    .dialog-message {
+      font-size: 14px;
+      color: var(--text-light);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      padding-left:12px;
+      padding-right:12px;
+    }
+
+    /* 模板选择 Chip 容器 */
+    .dialog-chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-bottom: 24px;
+      justify-content: center;
+    }
+
+    .chip {
+      padding: 8px 18px;
+      border-radius: 20px;
+      border: 1.5px solid var(--light-green);
+      background-color: var(--white);
+      color: var(--text-light);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      user-select: none;
+      outline: none;
+    }
+
+    .chip:hover {
+      background-color: var(--bg-tint);
+      border-color: var(--secondary-green);
+    }
+
+    .chip.selected {
+      background-color: var(--primary-dark);
+      color: var(--white);
+      border-color: var(--primary-dark);
+      box-shadow: 0 2px 6px rgba(0, 135, 102, 0.3);
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    /* ------------------------------------------------------------
+       dialog-card-select-tpl：模板选择对话框专用卡片样式
+       （从 .dialog-card 复制而来，与通用确认对话框分离，避免互相影响）
+       ------------------------------------------------------------ */
+    .dialog-card-select-tpl {
+      background-color: var(--white);
+      border-radius: 8px;
+      box-shadow: 0 11px 15px -7px rgba(0,0,0,0.2), 0 24px 38px 3px rgba(0,0,0,0.14), 0 9px 46px 8px rgba(0,0,0,0.12);
+      min-width: 320px;
+      max-width: 90%;
+      /* padding-bottom 比顶部 24px 更大：标题与操作按钮区域集中在顶部，
+         视觉上顶部显得更重，加大底部留白以达到视觉平衡 */
+      padding: 24px 24px 32px;
+      transform: scale(0.8);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+
+    /* overlay 激活时的展开过渡（与 .dialog-card 行为一致） */
+    .dialog-overlay.active .dialog-card-select-tpl {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    /* 点击遮罩时的弹性缩放（复用与 .dialog-card 相同的动画） */
+    .dialog-overlay.shake .dialog-card-select-tpl {
+      animation: dialog-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    /* 位置偏上显示：覆盖 .dialog-overlay 的垂直居中（align-items: center），
+       将卡片推向上方，使其上边沿与 #main-textarea 的上边沿大致对齐
+       （即 #btn-assemble 按钮下方一点的位置）。
+       顶部位置由 CSS 自定义属性 --tpl-select-top 控制：打开对话框时由 JS 动态测量
+       #main-textarea 当前的视口顶边（见 openTplSelectDialog，可跟随页面滚动位置）；
+       测量不可用时的静态回退值 191px 对应首屏无滚动状态下 textarea 顶边的高度
+       （body padding 40px + tabs 区约71px + 内容区 padding 20px + 按钮行36px + 各级外边距24px）。
+       overflow-y: auto 作为极端情况保护：模板极多导致卡片高度超出视窗可用高度时，
+       靠上布局使溢出发生在下方（可滚动查看），避免顶部标题/按钮被截断且不可操作 */
+    .tpl-select-overlay {
+      align-items: flex-start;
+      overflow-y: auto;
+      padding-top: var(--tpl-select-top, 191px);
+    }
+
+    /* 宽度限制：≥900px 时，宽度上限与 .main-container 的响应式宽度一致；
+       视窗超过约 1650px 后（66.67vw 达到 1100px）不再继续跟随视口变宽，封顶 1100px；
+       <900px 窄屏状态下不做限制（保持默认 90%） */
+    @media (min-width: 901px) {
+      .tpl-select-overlay .dialog-card-select-tpl {
+        /* min() 双保险：内容不宽时收缩，内容多时最多撑到 66.67%（与默认 .main-container 一致）；
+           第三个值 1100px 为绝对上限，超宽视窗下卡片不再被无意义拉宽 */
+        max-width: min(90vw, 66.67vw, 1100px);
+      }
+    }
+    @media (min-width: 901px) and (max-width: 1200px) {
+      .tpl-select-overlay .dialog-card-select-tpl {
+        max-width: min(90vw, 83.33vw, 1100px); /* 与 .main-container @media(max-width:1200px) 同步；1100px 绝对上限在本区间内不会触发 */
+      }
+    }
+    @media (max-width: 900px) {
+      .tpl-select-overlay .dialog-card-select-tpl {
+        max-width: 90%; /* 恢复默认 */
+      }
+    }
+
+    /* 标题行：标题居左，操作按钮居右（改善模板极多时的操作便利性） */
+    .tpl-select-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    /* 标题与操作按钮处于同一水平中心线：
+       .dialog-title 自带 margin-bottom:16px，在 align-items:center 的 flex 行中
+       居中是以 margin-box 为准，会使标题字形相对按钮文字整体上移约 8px；
+       在此 header 内将底部外边距归零即可恢复对齐
+       （与下方 chip 组的间距由 .tpl-select-header 自身的 margin-bottom 提供） */
+    .tpl-select-header .dialog-title {
+      margin-bottom: 0;
+    }
+
+    .tpl-select-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0; /* 防止按钮被标题挤压 */
+    }
+
+    /* 仅中文版的按钮字号使用（15px）：中文内容宽度窄 */
+    .dialog-card-select-tpl .tpl-select-actions .v-btn-text {
+      font-size: 13px;
+    }
+
+    /* Chip 组在新布局中是最后一片内容，原底部外边距会形成多余的空白；改为 0 */
+    .tpl-select-overlay .dialog-chip-group {
+      margin-bottom: 0;
+    }
+
+    /* 删除按钮样式（红色） */
+    /* .v-btn-text.delete-btn {
+      color: var(--highlight-rose);
+      float: left;
+      margin-right: auto;
+    }
+
+    .v-btn-text.delete-btn:hover {
+      background-color: var(--pale-rose);
+    } */
+
+    /* Vuetify Text 样式按钮 */
+    .v-btn-text {
+      position: relative;
+      overflow: hidden;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.4px;
+      text-transform: none;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      user-select: none;
+      outline: none;
+      background-color: transparent;
+      color: var(--primary-green);
+      min-height: 32px;
+      white-space: nowrap;
+    }
+
+    .v-btn-text:hover {
+      background-color: #F6F6F6;
+    }
+
+    .v-btn-text .ripple-text {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-text-animation 0.6s linear;
+      background-color: #C0C0C0;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    @keyframes ripple-text-animation {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* ========== Tooltip ========== */
+    .tooltip-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      margin-left: 6px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    .tooltip-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--text-light);
+      transition: color 0.2s ease;
+      display: block;
+      margin-top: -3px;
+    }
+
+    .tooltip-wrapper:hover .tooltip-icon {
+      color: var(--primary-green);
+    }
+
+    .tooltip-content {
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%) scale(0.8);
+      background-color: var(--tooltip-bg);
+      color: var(--white);
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .tooltip-content::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -6px;
+      transform: translateY(-50%);
+      border: 6px solid transparent;
+      border-right-color: var(--tooltip-bg);
+      border-left: none;
+    }
+
+    .tooltip-wrapper:hover .tooltip-content {
+      opacity: 0.9;
+      transform: translateY(-50%) scale(1);
+      pointer-events: auto;
+    }
+
+    /* ========== Drawer Icon Button Tooltips (bottom direction) ========== */
+    .drawer-tooltip-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drawer-tooltip-content {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%) scale(0.8);
+      background-color: var(--tooltip-bg);
+      color: var(--white);
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .drawer-tooltip-content::after {
+      content: '';
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-bottom-color: var(--tooltip-bg);
+      border-top: none;
+    }
+
+    .drawer-tooltip-wrapper:hover .drawer-tooltip-content {
+      opacity: 0.9;
+      transform: translateX(-50%) scale(1);
+      pointer-events: auto;
+    }
+
+    /* ========== Button Tooltips (bottom direction) ========== */
+    .btn-tooltip-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-tooltip-content {
+      position: absolute;
+      top: 50%;
+      right: calc(100% + 10px);  /* 改为右侧定位，距离按钮左侧 6px */
+      left: auto;               /* 清除原有的 left: 50% */
+      transform: translateY(-50%) scale(0.8);  /* 改为垂直居中 */
+      background-color: var(--tooltip-bg);
+      color: var(--white);
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 50;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn-tooltip-content::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: -12px;             /* 位于 tooltip 右侧边缘 */
+      left: auto;               /* 清除原有的 left: 50% */
+      transform: translateY(-50%);
+      border: 6px solid transparent;
+      border-left-color: var(--tooltip-bg);  /* 左侧着色，形成向右的箭头 */
+      border-bottom-color: transparent;      /* 清除底部着色 */
+    }
+
+    .btn-tooltip-wrapper:hover .btn-tooltip-content {
+      opacity: 0.9;
+      transform: translateY(-50%) scale(1);  /* 改为垂直居中 */
+      pointer-events: auto;
+    }
+
+    /* 覆盖 .v-btn 的 overflow: hidden，允许 tooltip 溢出显示 */
+    .v-btn.btn-tooltip-wrapper {
+      overflow: visible;
+    }
+
+    /* ========== Snackbar ========== */
+    .snackbar-container {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      z-index: 400;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+
+    .snackbar-container.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .snackbar-card {
+      background-color: #323232;
+      color: #F5F5F5;
+      font-size: 14px;
+      padding: 14px 20px;
+      border-radius: 4px;
+      box-shadow: 0 3px 5px -1px rgba(0,0,0,0.2), 0 6px 10px 0 rgba(0,0,0,0.14);
+      min-width: 280px;
+      position: relative;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    /* Timer bar at bottom */
+    .snackbar-timer {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background-color: #FB8C00;
+      width: 100%;
+      transform-origin: left;
+      animation: snackbar-timer 4s linear forwards;
+    }
+
+    @keyframes snackbar-timer {
+      from { transform: scaleX(1); }
+      to { transform: scaleX(0); }
+    }
+
+    /* ========== Dialog Input 样式（Vuetify Text Field风格） ========== */
+    /* 停止使用@v2.0（注释保留，备以后用）：以下 dialog-input 系列样式曾服务于
+       confirm 对话框的内嵌输入框（#dialogInputWrapper / #dialogInput /
+       .dialog-input-label / .dialog-input-hint）。随着 edit_tab_name「编辑模板名」
+       对话框迁移为管理页内联编辑，对应 HTML 已移除，这些样式失效。
+       处理方式与 .v-btn-text.delete-btn 一致：不删除、注释保留以备将来复用。 */
+    /* .dialog-input-wrapper {
+      margin-bottom: 24px;
+      display: none;
+    }
+
+    .dialog-input-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .dialog-input {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--bottom-line-default);
+      border-radius: 4px 4px 0 0;
+      background-color: var(--input-bg);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 20px 16px 6px;
+      outline: none;
+      transition: border-color 0.2s, border-width 0.2s, box-shadow 0.25s ease;
+      height: 56px;
+      box-sizing: border-box;
+    }
+
+    .dialog-input:focus {
+      border-bottom: 2px solid var(--bottom-line-focus);
+      box-shadow: 2px -2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    .dialog-input-label {
+      position: absolute;
+      left: 16px;
+      top: 18px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--label-color-inactive);
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      background-color: transparent;
+    }
+
+    .dialog-input:focus ~ .dialog-input-label,
+    .dialog-input:not(:placeholder-shown) ~ .dialog-input-label {
+      top: 8px;
+      left: 16px;
+      font-size: 12px;
+      color: var(--label-color-active);
+    }
+
+    .dialog-input:not(:focus):not(:placeholder-shown) ~ .dialog-input-label {
+      color: var(--label-color-inactive);
+    }
+
+    .dialog-input-hint {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 4px;
+      padding-left: 16px;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      position: absolute;
+      width: 100%;
+    }
+
+    .dialog-input:focus ~ .dialog-input-hint {
+      opacity: 1;
+      transform: translateY(0);
+    } */
+
+    /* .dialog-tips-font 是活代码：重置确认消息 dialogMsg_ResetDefault 通过
+       <font class="dialog-tips-font"> 使用，不可注释/删除 */
+    .dialog-tips-font {
+        color: #3d6add;
+        font-size: 12px;
+    }
+
+    /* 隐藏 placeholder，仅用于触发 CSS 状态（随上方 dialog-input 系列停止使用，注释保留） */
+    /* .dialog-input::placeholder { color: transparent; } */
+
+    /* ============================================================
+       模板管理 Overlay：mode-page (浮层页面)
+       ============================================================ */
+    .mgr-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .mgr-overlay.active { opacity: 1; pointer-events: auto; }
+
+    /* 面板公共部分 */
+    .mgr-panel {
+      background-color: var(--white);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mgr-panel-body-scroll {
+      overflow-y: auto;
+      padding: 0 32px 32px;
+    }
+
+    .mgr-inner {
+      max-width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ---------- mode-page：浮层页面（最还原独立页观感） ---------- */
+    .mgr-overlay.mode-page {
+      background-color: rgba(205, 207, 207, 0.88); /* 与 body 同色系灰，微透主界面 */
+      backdrop-filter: blur(3px);
+      overflow-y: auto;
+      padding: 40px 20px;
+    }
+
+    .mode-page .mgr-panel {
+      width: 90%;
+      max-width: 1560px;
+      margin: 0 auto;
+      /* 面板至少撑满视口可用高度（减去overlay上下padding），填充管理页下方灰色空隙；
+         使用 min-height 而非 height，内容超高（如模板文本很长）时仍可自然增高 */
+      min-height: calc(100vh - 80px);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18); /* 比主卡片略深的投影，拉开层级 */
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+    }
+
+    .mode-page.active .mgr-panel { transform: translateY(0); opacity: 1; }
+    .mode-page .mgr-panel-body-scroll { overflow: visible; }
+
+    @media (max-width: 1200px) { .mode-page .mgr-panel { width: 90%; } }
+    @media (max-width: 768px) {
+      .mgr-overlay.mode-page { padding: 20px 12px; }
+      /* 移动端 overlay 上下 padding 变为 20px，共 40px，min-height 相应调整 */
+      .mode-page .mgr-panel { width: 100%; min-height: calc(100vh - 40px); }
+    }
+
+    /* ==================== 管理页内部 ==================== */
+    .manager-header {
+      z-index: 5;
+      background-color: var(--white);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 0 5px;
+      border-bottom: 2px solid var(--tab-base-line);
+      flex-wrap: wrap;
+    }
+
+    .back-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease;
+      flex-shrink: 0;
+      outline: none;
+    }
+
+    .back-btn:hover { background-color: var(--drawer-app-bar-hover); }
+    .back-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+    #btnIoCopy svg { width: 18px; height: 18px; }
+
+    #btnIoClear svg { width: 17px; height: 17px; }
+
+    #btnOpenIo svg path,
+    #btnOpenIo svg polygon {
+      stroke: currentColor;
+      stroke-width: 6; /* 128 viewBox @18px ≈ 0.84px */
+      stroke-linejoin: round;
+    }
+
+    .manager-title { font-size: 18px; font-weight: 700; color: var(--primary-dark); white-space: nowrap; }
+
+    /* 模板数量 Chip：参考 qwen_manage.html 的 .count-chip；
+       背景色不使用 --primary-dark（与左侧标题颜色过近），改用浅绿底 + 深绿字 */
+    .count-chip {
+      background-color: var(--dusty-indigo);
+      color: var(--white);
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 10px;
+      padding: 1px 8px;
+      white-space: nowrap;
+      margin-top:2px;
+    }
+
+    .header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+    .manager-body {
+      display: flex;
+      gap: 24px;
+      padding-top: 20px;
+      /* stretch（Flex 默认值）使左栏列表面板高度与右栏编辑器自动等高：
+         编辑器内容增高（模板文本较长）或切换到较高模板时，
+         左栏列表面板高度同步跟随 */
+      align-items: stretch;
+    }
+
+    /* column 布局使内部 .tpl-list 可通过 flex: 1 填充面板剩余高度，
+       实现与编辑器等高；列表内容过多时在面板内部滚动 */
+    .tpl-list-panel { flex: 1 0 290px; min-width: 0; display: flex; flex-direction: column; }
+
+    .add-tpl-btn {
+      width: 100%;
+      height: 40px;
+      border: 2px dashed var(--secondary-green);
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: var(--secondary-green);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      transition: background-color 0.2s ease, border-style 0.2s ease;
+      outline: none;
+    }
+
+    .add-tpl-btn:hover { background-color: var(--bg-tint); border-style: solid; }
+    .add-tpl-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+    .tpl-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      /* 列表高度改为随面板拉伸：.manager-body 使用 align-items: stretch 后
+         面板与右栏编辑器等高，模板数量超过可用空间时内部滚动
+         （原基于视口的 max-height 仅保留在 ≤900px 移动端布局中）；
+         min-height: 0 允许 flex 子项收缩，使 overflow 滚动正确生效 */
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .tpl-list::-webkit-scrollbar { width: 6px; }
+    .tpl-list::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
+
+    .tpl-item {
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .tpl-item:hover { background-color: var(--bg-tint); }
+    .tpl-item.active { background-color: var(--pale-green); border-left-color: var(--primary-green); }
+
+    .tpl-item-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tpl-item.active .tpl-item-name { color: var(--primary-dark); }
+
+    .tpl-item-meta {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    /* 模板列表中的编辑时间戳 */
+    .tpl-item-edit-time {
+      flex-shrink: 0;
+    }
+
+    .dirty-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--highlight-rose);
+      flex-shrink: 0;
+    }
+
+    .tpl-editor { flex: 0 1 900px; min-width: 0; }
+
+    .editor-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      min-height: 40px;
+    }
+
+    .tpl-name-field { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+
+    .tpl-name-input {
+      border: none;
+      border-bottom: 2px solid var(--bottom-line-default);
+      background: transparent;
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--primary-dark);
+      padding: 4px 2px;
+      outline: none;
+      flex: 1;
+      min-width: 120px;
+      max-width: 100%;
+      transition: border-color 0.2s ease;
+    }
+
+    .tpl-name-input:focus { border-bottom-color: var(--bottom-line-focus); }
+
+    .name-count { font-size: 12px; color: var(--text-light-2); white-space: nowrap; }
+
+    /* 模板名称编辑/保存图标按钮 */
+    .tpl-name-action-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      background: transparent;
+      cursor: pointer;
+      color: var(--text-light);
+      transition: background-color 0.2s ease, color 0.2s ease;
+      outline: none;
+      flex-shrink: 0;
+    }
+
+    .tpl-name-action-btn:hover {
+      background-color: var(--bg-tint);
+      color: var(--primary-green);
+    }
+
+    .tpl-name-action-btn:active {
+      background-color: var(--pale-green);
+    }
+
+    .tpl-name-action-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .tpl-name-action-btn.save-btn {
+      color: var(--primary-green);
+    }
+
+    .tpl-name-action-btn.save-btn:hover {
+      background-color: var(--pale-green);
+      color: var(--primary-dark);
+    }
+
+    /* 删除模板图标按钮 */
+    .tpl-name-action-btn.delete-action-btn {
+      color: var(--highlight-rose);
+      margin-left: auto;
+    }
+
+    .tpl-name-action-btn.delete-action-btn:hover {
+      background-color: var(--pale-rose);
+      color: var(--highlight-rose);
+    }
+
+    /* 还原模板名称图标按钮（编辑名称时占据删除按钮的位置） */
+    .tpl-name-action-btn.revert-action-btn {
+      margin-left: auto;
+    }
+
+    /* 危险操作图标按钮（通用玫红色） */
+    .tpl-name-action-btn.danger-action-btn {
+      color: var(--highlight-rose);
+    }
+
+    .tpl-name-action-btn.danger-action-btn:hover {
+      background-color: var(--pale-rose);
+      color: var(--highlight-rose);
+    }
+
+    /* 重置图标字符（⭯）：模拟 SVG 图标的粗细感 */
+    .reset-icon-char {
+      font-size: 18px;
+      -webkit-text-stroke: 0.6px currentColor;
+    }
+
+    /* 模板名称输入框：非编辑状态（只读） */
+    .tpl-name-input:not(.editing) {
+      border-bottom-color: transparent;
+      background: transparent;
+      cursor: default;
+      color: var(--text-light);
+    }
+
+    /* 模板名称输入框：编辑状态（明显的UI变化） */
+    .tpl-name-input.editing {
+      border-bottom: 2px solid var(--primary-green);
+      background-color: var(--input-bg);
+      border-radius: 4px 4px 0 0;
+      padding: 6px 8px;
+      box-shadow: 0 1px 4px rgba(0, 150, 114, 0.15);
+    }
+
+    .tpl-name-input.editing:focus {
+      border-bottom-color: var(--primary-dark);
+      box-shadow: 0 2px 8px rgba(0, 150, 114, 0.25);
+    }
+
+    /* 大屏（宽度 >900px）模板管理界面打开时，由 JS 在 .mgr-overlay 上
+       设置 --mgr-list-panel-min-height / --mgr-list-panel-max-height，
+       限制左侧模板列表面板高度。最小高度保证底部与空模板编辑区底部齐平；
+       最大高度按打开时的视窗高度计算，避免模板过多导致整个管理页面滚动。
+       打开后窗口大小变化不会重新计算（JS 仅在打开时计算一次）。 */
+    @media (min-width: 901px) {
+      .tpl-list-panel {
+        min-height: var(--mgr-list-panel-min-height, auto);
+        max-height: var(--mgr-list-panel-max-height, none);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .manager-body { flex-direction: column; }
+      /* 纵向布局下面板上下排列，高度同步不适用 */
+      .tpl-list-panel { flex: none; width: 100%; }
+      /* 纵向布局下列表高度调整为约显示4.5个模板项（每项约70px + 4px间距）：
+         原220px仅能完整显示3项；现调至330px可完整显示4项，
+         且第5项能露出名称但其整体高度不会完整显示（形成可继续滚动选择的视觉提示）。 */
+      /* flex: none 覆盖桌面端的 flex: 1，恢复为 max-height 限制高度 */
+      .tpl-list { max-height: 330px; flex: none; }
+      .tpl-editor { flex: none; width: 100%; }
+    }
+
+
+    /* 排序入口按钮与"新增模板"按钮同一行排列的容器（排序按钮位于新增按钮左侧） */
+    .add-row { display: flex; gap: 10px; }
+
+    /* 覆盖 .add-tpl-btn 的 width:100%，使其与排序按钮能水平排布 */
+    .add-row .add-tpl-btn { flex: 1; width: auto; }
+
+    .sort-entry-btn {
+      flex: 0 0 auto;
+      width: 46px;
+      height: 40px;
+      border: 2px solid var(--secondary-green);
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--secondary-green);
+      transition: background-color 0.2s ease, color 0.2s ease;
+      outline: none;
+    }
+
+    .sort-entry-btn:hover { background-color: var(--bg-tint); color: var(--primary-green); }
+    .sort-entry-btn svg { width: 20px; height: 20px; fill: currentColor; }
+
+    /* 排序界面 Overlay */
+    .sort-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 150;
+      background-color: rgba(205, 207, 207, 0.88);
+      backdrop-filter: blur(3px);
+      overflow-y: auto;
+      padding: 40px 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .sort-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .sort-panel {
+      width: 90%;
+      max-width: 980px; /* 比管理页(1560px)窄，但保证长名称在宽屏下完整显示 */
+      min-height: calc(100vh - 80px);
+      margin: 0 auto;
+      background-color: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sort-overlay.active .sort-panel { transform: translateY(0); opacity: 1; }
+    .sort-panel-body { padding: 0 32px 32px; }
+
+    .sort-hint {
+      font-size: 12px;
+      color: var(--text-light);
+      line-height: 1.7;
+      padding: 10px 2px 0;
+    }
+
+    /* 排序卡片列表 */
+    .sort-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 14px;
+    }
+
+    /* 排序卡片：1px 浅绿细边框 + 左侧 4px 主绿强调条 + 8px 圆角 + 轻投影 */
+    .sort-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      background-color: var(--white);
+      border: 1px solid rgba(0, 150, 114, 0.2);
+      border-left: 4px solid var(--primary-green);
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: background-color 0.2s ease;
+      will-change: transform; /* FLIP 动画 */
+    }
+
+    .sort-card:hover { background-color: var(--bg-tint); }
+
+    /* 排序序号：明显一点的徽章样式 */
+    .sort-index {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background-color: var(--pale-green);
+      color: var(--primary-dark);
+      font-size: 17px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .sort-card-main { flex: 1; min-width: 0; }
+
+    .sort-card-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sort-card-meta { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+
+    .sort-card-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+    /* 排序移动按钮：置顶琥珀系 / 上移绿色系 / 下移玫红系，以颜色区分三种操作 */
+    .sort-move-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      outline: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .sort-move-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+    /* 上移：浅绿底 / 深绿图标，hover 填充主绿 */
+    .sort-move-btn.move-up { background-color: var(--pale-green); color: var(--primary-dark); }
+    .sort-move-btn.move-up:hover:not(:disabled) { background-color: var(--primary-green); color: var(--white); }
+    .sort-move-btn.move-up:active:not(:disabled) { background-color: var(--primary-dark); color: var(--white); }
+
+    /* 置顶：浅琥珀底 / 深琥珀图标，hover 填充琥珀（与上移绿 / 下移玫红区分）；
+       阈值（INT_TOP_THRESHOLD）以内保持禁用置灰，不隐藏，保持按钮位置恒定 */
+    .sort-move-btn.move-top { background-color: #FFF3CD; color: #B96F00; }
+    .sort-move-btn.move-top:hover:not(:disabled) { background-color: #B96F00; color: var(--white); }
+    .sort-move-btn.move-top:active:not(:disabled) { background-color: #E6A700; color: var(--white); }
+
+    /* 下移：浅玫红底 / 玫红图标，hover 填充玫红 */
+    .sort-move-btn.move-down { background-color: var(--pale-rose); color: var(--highlight-rose); }
+    .sort-move-btn.move-down:hover:not(:disabled) { background-color: var(--highlight-rose); color: var(--white); }
+    .sort-move-btn.move-down:active:not(:disabled) { background-color: #c7556a; color: var(--white); }
+
+    /* 首尾卡片：对应方向按钮禁用置灰（不隐藏，保持按钮位置恒定） */
+    .sort-move-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .sort-move-btn:not(:disabled):active { transform: scale(0.92); }
+    .sort-move-btn:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+    /* 排序界面专用的回到顶部 FAB：
+       sort-overlay 的 z-index(150) 高于主 fabTop(100)，排序界面打开时主FAB会被遮罩挡住，
+       因此该独立按钮的 z-index 需高于 sort-overlay(150)；
+       同时低于 dialog(200)，避免盖住确认对话框 */
+    #sortFabTop {
+      z-index: 160;
+    }
+
+    @media (max-width: 768px) {
+      .sort-overlay { padding: 20px 12px; }
+      .sort-panel { width: 100%; min-height: calc(100vh - 40px); }
+      .sort-panel-body { padding: 0 16px 20px; }
+      .sort-card { padding: 10px 10px; gap: 10px; }
+      .sort-index { width: 36px; height: 36px; font-size: 15px; }
+      .sort-card-name { font-size: 14px; }
+      .sort-card-actions { gap: 6px; }
+      /* 小屏下3个排序按钮较挤：置顶按钮略缩小 */
+      .sort-move-btn.move-top { width: 40px; height: 40px; }
+      .sort-move-btn.move-top svg { width: 22px; height: 22px; }
+    }
+
+    /* ============================================================
+       模板配置导出/导入界面 Overlay
+       复用与管理页/排序页相同的 mode-page 机制；点击遮罩不关闭
+       ============================================================ */
+    .io-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 155;
+      background-color: rgba(205, 207, 207, 0.88);
+      backdrop-filter: blur(3px);
+      overflow-y: auto;
+      padding: 40px 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .io-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .io-panel {
+      width: 90%;
+      max-width: 980px;
+      min-height: calc(100vh - 80px);
+      margin: 0 auto;
+      background-color: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .io-overlay.active .io-panel { transform: translateY(0); opacity: 1; }
+    .io-panel-body { padding: 0 32px 32px; }
+
+    .io-settings-section { margin-top: 16px; }
+    .io-settings-section .io-info-card {
+      flex: 1 1 100%;
+      background-color: var(--bg-tint);
+      border-color: var(--secondary-green);
+    }
+
+    /* JSON 等宽字体（供 hint 中展示的 JSON 结构示例使用）；
+       等宽栈中混排中文（如"模板名"/"模板内容"）时通过 --font-sans-cjk 指定受控的 CJK 字体，
+       避免依赖浏览器的隐式字体回退 */
+    .mono-font {
+      font-family: Consolas, Monaco, 'Courier New', var(--font-sans-cjk), monospace;
+      color: var(--dusty-indigo);
+    }
+
+    .json-textarea-wrapper {
+      position: relative;
+      width: 100%;
+      margin-top: 20px;
+    }
+    .json-textarea {
+      width: 100%;
+      min-height: 320px;
+      border: 2px solid var(--light-green);
+      border-radius: 4px;
+      resize: none;
+      outline: none;
+      background-color: var(--white);
+      color: var(--text-main);
+      /* 等宽字体栈中补充 CJK 字体（--font-sans-cjk）：导出的 JSON 中模板名/内容含中文，
+         避免依赖浏览器的隐式字体回退，确保中文显示与全局字体一致 */
+      font-family: Consolas, Monaco, 'Courier New', var(--font-sans-cjk), monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      padding: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.25s ease;
+      overflow: hidden;
+    }
+    .json-textarea:focus {
+      border-color: var(--primary-dark);
+      box-shadow: 3px 4px 6px rgba(0, 0, 0, 0.12);
+    }
+    .json-textarea-label {
+      position: absolute;
+      left: 12px;
+      top: -10px;
+      background-color: var(--white);
+      padding: 0 4px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary-dark);
+      pointer-events: none;
+    }
+
+    /* 导出/导入界面专用的回到顶部 FAB；
+       io-overlay 的 z-index(155) 高于管理/排序遮罩(150)，此 FAB 需高于其遮罩，
+       同时低于 dialog(200)，避免盖住确认对话框 */
+    #ioFabTop { z-index: 165; }
+
+    @media (max-width: 768px) {
+      .io-overlay { padding: 20px 12px; }
+      .io-panel { width: 100%; min-height: calc(100vh - 40px); }
+      .io-panel-body { padding: 0 16px 20px; }
+      .json-textarea { min-height: 240px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Snackbar -->
+  <div class="snackbar-container" id="snackbar">
+    <div class="snackbar-card">
+      <span id="snackbar-text">default context</span>
+      <div class="snackbar-timer"></div>
+    </div>
+  </div>
+  
+  
+  <div class="main-container">
+      <!-- Template Manager FAB -->
+      <button class="fab-reset-default drawer-tooltip-wrapper" id="fabResetDefault" onclick="openManager()" data-i18n-aria="aria_TemplateManagerBtn" aria-label="模板管理">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9,5V9H21V5M9,19H21V15H9M9,14H21V10H9M4,9H8V5H4M4,19H8V15H4M4,14H8V10H4V14Z"/>
+          </svg>
+          <div class="drawer-tooltip-content" data-i18n="tooltip_TemplateManagerBtn">模板管理</div>
+      </button>
+
+    <!-- Tabs -->
+    <div class="tabs-wrapper">
+      <button class="tab-btn active" data-target="main" data-i18n="txt_MainTab_Title">问题</button>
+      <div class="tab-indicator"></div>
+    </div>
+
+    <!-- 内容滑动容器 -->
+    <div class="tab-content-wrapper">
+      <!-- Tab 1: 主要功能（静态保留） -->
+      <div id="main" class="tab-content active">
+        <div class="main-section">
+          <div class="info-card-main">
+            <div>
+              <span data-i18n="label_MainTab_charCount">字数：</span><span id="main-count">0</span><!--<span id="main-extra-count"> (0)</span> -->
+              <div class="tooltip-wrapper">
+                <svg class="tooltip-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2v6z"/>
+                </svg>
+                <div class="tooltip-content" data-i18n-html="tooltip_MainTab_CharCountIcon">括号内是嵌入模板后的总字符数（包含换行符）<br>・ 1个日文字符对于主流LLM来说约消耗0.5 ~ 1个Token（应避免不必要的敬语）<br>・ 1个英文单词约消耗1个Token</div>
+              </div>
+            </div>
+          </div>
+          <div class="btn-area">
+            <button class="v-btn btn-tooltip-wrapper" id="btn-clear" onclick="requestClearMainTextarea(event)" aria-label="清除" data-i18n-aria="btn_MainTab_Clear">
+              <!-- 清除按钮图标：eraser（橡皮擦） -->
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true" focusable="false">
+                <path d="M3 14h13v1H3z"/>
+                <path d="M9.984 1a1 1 0 00-.691.294l-8.5 8.5a1 1 0 000 1.414L2.586 13h6.828l5.793-5.793a1 1 0 000-1.414l-4.5-4.5a1 1 0 00-.723-.292zM6.401 6.9l3.137 3.095s.5.5 0 1L8.56 12H3.398l-1.584-1.5 3.587-3.601c.5-.5 1 0 1 0z" fill-rule="evenodd"/>
+              </svg>
+              <div class="btn-tooltip-content" data-i18n="tooltip_MainTab_ClearBtn">清除输入框中的内容</div>
+            </button>
+            <button class="v-btn btn-tooltip-wrapper" id="btn-assemble" onclick="createRipple(event); assemblePrompt()"><span data-i18n="btn_MainTab_Assemble">组装 Prompt</span>
+              <div class="btn-tooltip-content" data-i18n="tooltip_MainTab_AssembleBtn">保存済みテンプレートと結合してプロンプトを生成します</div>
+            </button>
+          </div>
+        </div>
+        <div class="textarea-wrapper">
+          <textarea class="auto-grow" id="main-textarea" placeholder=" "></textarea>
+          <label class="floating-label" data-i18n="label_MainTab_TextareaTitle">想问AI的内容</label>
+        </div>
+      </div>
+      <!-- 动态Settings Tab Contents将插入在这里 -->
+    </div>
+  </div>
+
+  <!-- 回到顶部 FAB -->
+  <button class="fab-back-to-top" id="fabTop" onclick="scrollToTop()" data-i18n-aria="aria_back2TopBtn" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24">
+      <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+    </svg>
+  </button>
+
+  <!-- 底部 Drawer -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="handleDrawerOverlayClick(event)">
+    <div class="drawer-panel" onclick="event.stopPropagation()">
+      <div class="drawer-app-bar">
+        <div class="drawer-app-bar-title" data-i18n="txt_Drawer_Title">Prompt</div>
+        <div class="drawer-app-bar-actions">
+          <button class="drawer-icon-btn drawer-tooltip-wrapper" id="drawerTopBtn" data-i18n-aria="aria_Drawer_TopBtn" aria-label="最上方">
+            <svg viewBox="0 0 24 24">
+              <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" fill="#0047fd"/>
+            </svg>
+            <div class="drawer-tooltip-content" data-i18n="tooltip_Drawer_TopBtn">最上方</div>
+          </button>
+          <button class="drawer-icon-btn drawer-tooltip-wrapper" id="drawerCopyBtn" data-i18n-aria="aria_Drawer_CopyBtn" aria-label="复制">
+            <svg viewBox="0 0 24 24">
+              <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+            </svg>
+            <div class="drawer-tooltip-content" data-i18n="tooltip_Drawer_CopyBtn">复制</div>
+          </button>
+          <button class="drawer-icon-btn drawer-tooltip-wrapper" id="drawerCloseBtn" data-i18n-aria="aria_Drawer_CloseBtn" aria-label="关闭" onclick="closeDrawer()">
+            <svg viewBox="0 0 24 24">
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+            </svg>
+            <div class="drawer-tooltip-content" data-i18n="tooltip_Drawer_CloseBtn">关闭</div>
+          </button>
+        </div>
+      </div>
+      <div class="drawer-content">
+        <div class="drawer-textarea-wrapper">
+          <textarea class="drawer-textarea" id="drawer-textarea" readonly></textarea>
+          <div class="drawer-textarea-label"><span data-i18n="label_Drawer_CharCount">文字数:</span><span id="drawer-char-count">0</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dialog 确认框 -->
+  <div class="dialog-overlay" id="dialogOverlay" onclick="handleOverlayClick(event)">
+    <div class="dialog-card" onclick="event.stopPropagation()">
+      <div class="dialog-title" data-i18n="dialogTitle_Confirm">确认操作</div>
+      <div class="dialog-message" data-i18n="dialogMsg_Confirm">确定要这么操作吗？</div>
+      <div class="dialog-actions">
+        <button class="v-btn-text" id="dialog-cancel-btn" onclick="closeDialog()" data-i18n="dialogBtn_Cancel">取消</button>
+        <button class="v-btn-text" onclick="confirmDialog(event)" data-i18n="dialogBtn_Confirm">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 模板管理 Overlay (mode-page) ==================== -->
+  <!-- 模板管理界面不通过点击遮罩关闭（仅通过返回按钮或 ESC 关闭） -->
+  <div class="mgr-overlay mode-page" id="mgrOverlay">
+    <div class="mgr-panel" onclick="event.stopPropagation()">
+      <div class="mgr-panel-body-scroll">
+        <div class="mgr-inner">
+
+          <header class="manager-header">
+            <span class="manager-title" data-i18n="txt_Manager_Title">模板管理</span>
+            <span class="count-chip" id="managerTemplateCount">0</span>
+            <button class="tpl-name-action-btn danger-action-btn drawer-tooltip-wrapper" id="btnResetAllTpls" onclick="resetToDefaultConfigs()" aria-label="重置所有模板">
+              <span class="reset-icon-char">⭯</span>
+              <!-- <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7.2 7.2A6.8 6.8 0 1 0 16.8 7.2"/>
+                <path d="M14.7 5.1L18.5 6.8L16.4 8.9Z"/>
+              </svg> -->
+              <div class="drawer-tooltip-content" data-i18n="tooltip_ResetDefaultBtn">重置为默认模板</div>
+            </button>
+
+            <button class="tpl-name-action-btn drawer-tooltip-wrapper" id="btnOpenIo" onclick="openIoPage()" aria-label="模板配置导出/导入" data-i18n-aria="aria_IoEntryBtn">
+              <svg viewBox="0 0 128 128" aria-hidden="true">
+                <g>
+                  <polygon points="12,117 116,117 116,82 108,82 108,109 20,109 20,21 60,21 60,13 12,13"/>
+                  <path d="M60,62v10h8V62c0-8.8,7.2-16,16-16h24.3L95.2,59.2l5.7,5.7L123.7,42l-22.8-22.8l-5.7,5.7L108.3,38H84C70.8,38,60,48.8,60,62z"/>
+                </g>
+              </svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_IoEntryBtn">模板配置导出/导入</div>
+            </button>
+            <div class="header-actions">
+              <button class="back-btn drawer-tooltip-wrapper" aria-label="返回主界面" onclick="closeManager()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                </svg>
+                <div class="drawer-tooltip-content" data-i18n="tooltip_CloseManagerBtn">返回主界面</div>
+              </button>
+            </div>
+          </header>
+
+          <div class="manager-body">
+            <aside class="tpl-list-panel">
+              <div class="add-row">
+                <button class="sort-entry-btn drawer-tooltip-wrapper" id="btnOpenSort" data-i18n-aria="aria_SortEntryBtn" aria-label="模板排序" onclick="openSortPage()">
+                  <svg viewBox="0 0 417.138 417.138" aria-hidden="true">
+                    <g>
+                      <path d="M153.289,333.271c9.35,0,17-7.65,17-17v-299.2c0-6.517-3.683-12.467-9.35-15.3c-5.667-2.833-12.75-2.267-17.85,1.7
+                        l-111.067,83.3c-7.65,5.667-9.067,16.15-3.4,23.8c5.667,7.65,16.15,9.067,23.8,3.4l83.867-62.9v265.2
+                        C136.289,325.621,143.939,333.271,153.289,333.271z"/>
+                      <path d="M263.789,86.771c-9.35,0-17,7.65-17,17v296.367c0,6.517,3.683,12.183,9.35,15.3c2.55,1.133,5.1,1.7,7.65,1.7
+                        c3.683,0,7.083-1.133,10.2-3.4l111.067-81.883c7.65-5.667,9.067-16.15,3.683-23.8c-5.667-7.65-16.15-9.067-23.8-3.683
+                        l-84.15,62.05v-262.65C280.789,94.421,273.139,86.771,263.789,86.771z"/>
+                    </g>
+                  </svg>
+                  <div class="drawer-tooltip-content" data-i18n="tooltip_SortEntryBtn">模板排序</div>
+                </button>
+                <button class="add-tpl-btn" id="btnCreateNewTpl" onclick="handleAddNewTab()">
+                  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                  <span data-i18n="btn_Manager_AddTemplate">新增模板</span>
+                </button>
+              </div>
+              <div class="tpl-list" id="tplList">
+                <!-- 动态模板列表将插入在这里 -->
+              </div>
+            </aside>
+
+            <section class="tpl-editor" id="tplEditor">
+              <div class="editor-header">
+                <div class="tpl-name-field">
+                  <input class="tpl-name-input" type="text" id="tplNameInput" maxlength="30" aria-label="模板名称" placeholder=" " readonly>
+                  <span class="name-count" id="tplNameCount">0/30</span>
+                  <!-- 编辑名称按钮（非编辑状态显示） -->
+                  <button class="tpl-name-action-btn drawer-tooltip-wrapper" id="btnEditName" onclick="enterNameEditMode()" aria-label="编辑模板名称">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                    <div class="drawer-tooltip-content" data-i18n="tooltip_BtnEditTemplateName">编辑模板名称</div>
+                  </button>
+                  <!-- 保存名称按钮（编辑状态显示） -->
+                  <button class="tpl-name-action-btn save-btn drawer-tooltip-wrapper" id="btnSaveName" onclick="saveTemplateName()" aria-label="保存模板名称" style="display: none;">
+                    <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+                    <div class="drawer-tooltip-content" data-i18n="tooltip_BtnSaveTemplateName">保存模板名称</div>
+                  </button>
+                  <!-- 删除模板按钮（图标按钮，与编辑按钮风格统一） -->
+                  <button class="tpl-name-action-btn delete-action-btn drawer-tooltip-wrapper" id="btnDeleteTemplate" onclick="confirmDeleteFromManager()" aria-label="删除模板">
+                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                    <div class="drawer-tooltip-content" data-i18n="tooltip_BtnDeleteTemplate">删除模板</div>
+                  </button>
+                  <!-- 还原名称按钮（编辑状态显示，位于删除按钮位置） -->
+                  <button class="tpl-name-action-btn revert-action-btn drawer-tooltip-wrapper" id="btnRevertName" onclick="revertTemplateName()" aria-label="取消编辑模板名称" style="display: none;">
+                    <svg viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>
+                    <div class="drawer-tooltip-content" data-i18n="tooltip_BtnRevertTemplateName">取消编辑</div>
+                  </button>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="info-card-settings">
+                  <div class="settings-row">
+                    <div>
+                      <span data-i18n="label_MainTab_charCount">字数：</span><span id="mgrTemplateCount">0</span>
+                      <div class="tooltip-wrapper">
+                        <svg class="tooltip-icon" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M11 9h2V7h-2m1 13c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8m0-18A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2m-1 15h2v-6h-2v6z"/>
+                        </svg>
+                        <div class="tooltip-content" data-i18n-html="tooltip_Template_CharCountIcon">・ 1个汉字字符对于主流LLM来说约消耗0.5 ~ 1个Token<br>・ 1个英文单词约消耗1个Token</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="settings-divider"></div>
+                  <div class="settings-row">
+                    <div class="settings-hint" data-i18n-html="txt_Template_settingsHint">下方是配置好的prompt模板内容，<font class="hightlight-font">${user_input}</font>是拼接入用户输入内容的位置（必须）。</div>
+                    <div class="drawer-tooltip-wrapper insert-mark-tooltip">
+                      <button class="v-btn insert-mark-btn" id="btnInsertUserInputMark" type="button"
+                              onmousedown="event.preventDefault()" onclick="createRipple(event); insertUserInputMarkAtCursor()"
+                              aria-label="在模板光标位置插入用户输入占位标记" data-i18n-aria="aria_InsertUserInputMark">
+                        <span data-i18n="btn_InsertUserInputMark">${user_input}</span>
+                      </button>
+                      <div class="drawer-tooltip-content" data-i18n="tooltip_InsertUserInputMark">在模板光标位置插入 ${user_input} 标记（仅当模板编辑区处于聚焦状态时生效）</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="btn-area">
+                  <button class="v-btn" id="btnMgrReset" onclick="checkAndRequestRevert(currentEditingTabId, event)" data-i18n="btn_Template_Revert">回退</button>
+                  <button class="v-btn" id="btnMgrSave" onclick="checkAndOpenSaveDialog(currentEditingTabId, event)" data-i18n="btn_Template_Save">保存</button>
+                </div>
+              </div>
+
+              <div class="textarea-wrapper">
+                <textarea class="auto-grow template-textarea" id="mgrTemplateTextarea" placeholder=" "></textarea>
+                <label class="floating-label" data-i18n="label_Template_TextareaTitle">Prompt模板</label>
+              </div>
+            </section>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 排序界面 Overlay ==================== -->
+  <!-- 与模板管理界面一致：点击遮罩不关闭（仅通过右上角返回按钮或 ESC 关闭） -->
+  <div class="sort-overlay" id="sortOverlay">
+    <div class="sort-panel">
+      <div class="sort-panel-body">
+
+        <header class="manager-header">
+          <span class="manager-title" data-i18n="txt_SortPage_Title">模板排序</span>
+          <div class="header-actions">
+            <button class="back-btn drawer-tooltip-wrapper" data-i18n-aria="aria_CloseSortBtn" aria-label="返回主界面" onclick="closeSortPage()">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_CloseSortBtn">返回主界面</div>
+            </button>
+          </div>
+        </header>
+
+        <div class="sort-hint" data-i18n-html="txt_SortPage_Hint"></div>
+
+        <div class="sort-list" id="sortList">
+          <!-- 动态排序卡片将插入在这里 -->
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 模板配置导出/导入界面 Overlay ==================== -->
+  <!-- 与模板管理界面一致：点击遮罩不关闭（仅通过右上角返回按钮或 ESC 关闭） -->
+  <div class="io-overlay" id="ioOverlay">
+    <div class="io-panel">
+      <div class="io-panel-body">
+
+        <header class="manager-header">
+          <span class="manager-title" data-i18n="txt_IoPage_Title">模板配置 导出 / 导入</span>
+          <div class="header-actions">
+            <button class="back-btn drawer-tooltip-wrapper" id="btnIoClear" onclick="ioClearJsonTextarea()" aria-label="清除" data-i18n-aria="aria_IoClearBtn">
+              <!-- 复用主页 btn-clear 的 eraser（橡皮擦）图标；尺寸在 CSS 中单独适配 -->
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">
+                <path d="M3 14h13v1H3z"/>
+                <path d="M9.984 1a1 1 0 00-.691.294l-8.5 8.5a1 1 0 000 1.414L2.586 13h6.828l5.793-5.793a1 1 0 000-1.414l-4.5-4.5a1 1 0 00-.723-.292zM6.401 6.9l3.137 3.095s.5.5 0 1L8.56 12H3.398l-1.584-1.5 3.587-3.601c.5-.5 1 0 1 0z" fill-rule="evenodd"/>
+              </svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_IoClearBtn">清除</div>
+            </button>
+            <button class="back-btn drawer-tooltip-wrapper" id="btnIoExport" onclick="ioExportConfigs()" aria-label="导出" data-i18n-aria="aria_IoExportBtn">
+              <svg viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M17,10 L17,8 L18,8 C19.6568542,8 21,9.34314575 21,11 L21,19 C21,20.6568542 19.6568542,22 18,22 L6,22 C4.34314575,22 3,20.6568542 3,19 L3,11 C3,9.34314575 4.34314575,8 6,8 L7,8 L7,10 L6,10 C5.44771525,10 5,10.4477153 5,11 L5,19 C5,19.5522847 5.44771525,20 6,20 L18,20 C18.5522847,20 19,19.5522847 19,19 L19,11 C19,10.4477153 18.5522847,10 18,10 L17,10 Z M10.9551845,5.95272695 L9.78361162,7.11045387 C9.37558579,7.51365754 8.71404521,7.51365754 8.30601937,7.11045387 C7.89799354,6.70725019 7.89799354,6.05352787 8.30601937,5.65032419 L12,2 L15.6939806,5.65032419 C16.1020065,6.05352787 16.1020065,6.70725019 15.6939806,7.11045387 C15.2859548,7.51365754 14.6244142,7.51365754 14.2163884,7.11045387 L13.0448155,5.95272695 L13.0448155,13.9675324 C13.0448155,14.5377485 12.5770357,15 12,15 C11.4229643,15 10.9551845,14.5377485 10.9551845,13.9675324 L10.9551845,5.95272695 Z"/>
+              </svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_IoExportBtn">导出</div>
+            </button>
+
+            <button class="back-btn drawer-tooltip-wrapper" id="btnIoImport" onclick="ioRequestImport()" aria-label="导入" data-i18n-aria="aria_IoImportBtn">
+              <svg viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M17,9 L17,7 L18,7 C19.6568542,7 21,8.34314575 21,10 L21,18 C21,19.6568542 19.6568542,21 18,21 L6,21 C4.34314575,21 3,19.6568542 3,18 L3,10 C3,8.34314575 4.34314575,7 6,7 L7,7 L7,9 L6,9 C5.44771525,9 5,9.44771525 5,10 L5,18 C5,18.5522847 5.44771525,19 6,19 L18,19 C18.5522847,19 19,18.5522847 19,18 L19,10 C19,9.44771525 18.5522847,9 18,9 L17,9 Z M13.0448155,11.0472731 L14.2163884,9.88954613 C14.6244142,9.48634246 15.2859548,9.48634246 15.6939806,9.88954613 C16.1020065,10.2927498 16.1020065,10.9464721 15.6939806,11.3496758 L12,15 L8.30601937,11.3496758 C7.89799354,10.9464721 7.89799354,10.2927498 8.30601937,9.88954613 C8.71404521,9.48634246 9.37558579,9.48634246 9.78361162,9.88954613 L10.9551845,11.0472731 L10.9551845,3.0324676 C10.9551845,2.46225149 11.4229643,2 12,2 C12.5770357,2 13.0448155,2.46225149 13.0448155,3.0324676 L13.0448155,11.0472731 Z"/>
+              </svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_IoImportBtn">导入</div>
+            </button>
+
+            <button class="back-btn drawer-tooltip-wrapper" id="btnIoCopy" onclick="ioCopyTextarea()" aria-label="复制" data-i18n-aria="aria_IoCopyBtn">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_IoCopyBtn">复制</div>
+            </button>
+            <!-- 关闭（返回主界面） -->
+            <button class="back-btn drawer-tooltip-wrapper" aria-label="返回主界面" onclick="closeIoPage()">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+              <div class="drawer-tooltip-content" data-i18n="tooltip_CloseIoBtn">返回主界面</div>
+            </button>
+          </div>
+        </header>
+
+        <!-- 信息卡（仅说明）-->
+        <div class="settings-section io-settings-section">
+          <div class="info-card-settings io-info-card">
+            <div class="settings-row">
+              <div class="settings-hint" data-i18n-html="txt_IoPage_Hint"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- JSON 输入/输出 textarea -->
+        <div class="json-textarea-wrapper">
+          <textarea class="json-textarea" id="ioJsonTextarea" spellcheck="false"></textarea>
+          <label class="json-textarea-label" data-i18n="label_IoPage_TextareaTitle">模板配置 JSON</label>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 导出/导入界面专用的回到顶部 FAB（z-index 高于 io 遮罩，不遮挡确认对话框） -->
+  <button class="fab-back-to-top" id="ioFabTop" onclick="scrollIoToTop()" data-i18n-aria="aria_back2TopBtn" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24">
+      <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+    </svg>
+  </button>
+
+  <div class="dialog-overlay tpl-select-overlay" id="tplSelectOverlay" onclick="handleTplSelectOverlayClick(event)">
+    <div class="dialog-card-select-tpl" onclick="event.stopPropagation()">
+      <div class="tpl-select-header">
+        <div class="dialog-title" data-i18n="dialogTitle_SelectTemplate">选择模板</div>
+        <div class="tpl-select-actions">
+          <button class="v-btn-text" id="tpl-select-cancel-btn" onclick="closeTplSelectDialog()" data-i18n="dialogBtn_Cancel">取消</button>
+          <button class="v-btn-text" id="tpl-select-ok-btn" onclick="confirmTplSelectDialog(event)" data-i18n="dialogBtn_Confirm">确认</button>
+        </div>
+      </div>
+      <div class="dialog-chip-group" id="tpl-select-chip-group" style="display:flex;"></div>
+    </div>
+  </div>
+
+  <!-- 模板管理界面专用的回到顶部 FAB（独立于 #fabTop，z-index 高于模板管理遮罩层，不会被挡住） -->
+  <button class="fab-back-to-top" id="mgrFabTop" onclick="scrollToTop()" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24">
+      <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+    </svg>
+  </button>
+
+  <!-- 排序界面专用的回到顶部 FAB（独立于 #mgrFabTop，z-index 高于排序遮罩层） -->
+  <button class="fab-back-to-top" id="sortFabTop" onclick="scrollSortToTop()" data-i18n-aria="aria_back2TopBtn" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24">
+      <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+    </svg>
+  </button>
+
+  <script>
+    const version = "2.0";
+
+    // ==================== Page text definitions (i18n: edit this section to switch language) ====================
+    const TEXTS = {
+      // Page
+      pageTitle: "Prompt Assembler",
+      aria_back2TopBtn: "Back to top",
+
+      // ODD TEXT
+      odd_str_character:"characters",
+      
+      // Main page
+      txt_MainTab_Title: "Question",
+      label_MainTab_charCount: "chars: ",
+      tooltip_MainTab_CharCountIcon: "・ 1 English word costs about 1 token",
+      btn_MainTab_Clear: "Clear",
+      tooltip_MainTab_ClearBtn: "Clear the contents of the input box",
+      btn_MainTab_Assemble: "Assemble Prompt",
+      tooltip_MainTab_AssembleBtn: "Embed the entered content into the selected template to generate the prompt",
+      label_MainTab_TextareaTitle: "What you want to ask the AI",
+      
+      // Template settings page
+      tooltip_Template_CharCountIcon: "・ 1 CJK character costs about 0.5 ~ 1 tokens for mainstream LLMs<br>・ 1 English word costs about 1 token",
+      txt_Template_settingsHint: 'Configure the prompt template content below. <font class="hightlight-font">${user_input}</font> is the position where the user input will be inserted (required).',
+      btn_InsertUserInputMark: "${user_input}",
+      tooltip_InsertUserInputMark: "Insert the ${user_input} mark at the cursor position",
+      aria_InsertUserInputMark: "Insert the ${user_input} mark",
+      btn_Template_Revert: "Revert",
+      btn_Template_Save: "Save",
+      label_Template_TextareaTitle: "Prompt template",
+      
+      // Drawer
+      txt_Drawer_Title: "Prompt",
+      tooltip_Drawer_TopBtn: "To top",
+      tooltip_Drawer_CopyBtn: "Copy",
+      tooltip_Drawer_CloseBtn: "Close",
+      aria_Drawer_TopBtn: "Scroll to top",
+      aria_Drawer_CopyBtn: "Copy",
+      aria_Drawer_CloseBtn: "Close",
+      label_Drawer_CharCount: "chars: ",
+      
+      // Dialog titles
+      dialogTitle_Confirm: "Confirm action",
+      dialogTitle_Save: "Save",
+      dialogTitle_Revert: "Revert",
+      dialogTitle_SelectTemplate: "Select template",
+      dialogTitle_DeleteConfirm: "Confirm deletion",
+      dialogTitle_AddTab: "Add new template",
+      dialogTitle_ResetDefault: "Reset all templates",
+      dialogTitle_ImportConfirm: "Confirm import",
+      
+      // Dialog messages (fixed)
+      dialogMsg_Confirm: "Are you sure you want to proceed?",
+      dialogMsg_ClearConfirm: "Are you sure you want to clear the contents of the input box?",
+      dialogMsg_SaveTemplate: "The content of the template will be saved",
+      dialogMsg_RevertTemplate: "This will revert to the last saved content",
+      dialogMsg_DeleteTemplate: "Are you sure you want to delete this template? This action cannot be undone.",
+      dialogMsg_AddTab: "Are you sure you want to create a new template?",
+      dialogMsg_ResetDefault: 'Are you sure you want to reset all templates to the default settings?<br>All current custom template contents will be cleared.<br><br><font class="dialog-tips-font"> ※ Default settings must be manually configured in {DEFAULT_TEMPLATE_CONFIGS} within the file',
+      
+      // Dialog buttons
+      dialogBtn_Cancel: "Cancel",
+      dialogBtn_Confirm: "Confirm",
+      
+      // Snackbar fixed messages
+      snackbar_ResetDone: "Reset to default settings",
+      snackbar_LsSaveFailed: "Failed to save to localStorage. Please check your browser permissions",
+      snackbar_SelectTemplateFirst: "Please select a template first",
+      snackbar_TemplateEmpty: "The selected template content is empty",
+      snackbar_TabNameEmpty: "Template name cannot be empty",
+      snackbar_TabNameTooLong: "Template name cannot exceed 30 characters",
+      snackbar_TabNameUpdated: "Template name updated",
+      snackbar_Copied: "Copied to clipboard",
+      snackbar_CopyFailed: "Copy failed. Please copy manually",
+      snackbar_QuestionEmpty: "Question content cannot be empty",
+      snackbar_EmptyTemplateCannotSave: "An empty template cannot be saved. It has been restored to the previous content",
+      snackbar_MissingUserInputMark: "The template content is missing the mark: ${user_input}",
+      snackbar_SaveFailed: "Save failed. Please check your browser permissions (localStorage)",
+      snackbar_NameEditingCannotLeave: "A template name is being edited. Please save or discard the changes first",
+      snackbar_NoUnsavedChanges: "There are no unsaved changes to the current content",
+      
+      // Snackbar messages with variables ({name} is a placeholder)
+      snackbarArgMsg_TemplateCreated: "New template [{name}] has been created",
+      snackbarArgMsg_TemplateDeleted: "Template [{name}] has been deleted",
+      snackbarArgMsg_TemplateUnsaved: "[{name}] has been modified but not saved. Only the saved version is used when assembling prompts.",
+      snackbarArgMsg_ContentSaved: "Contents of [{name}] have been saved",
+      snackbarArgMsg_RevertDone: "[{name}] has been reverted to the last saved content",
+      
+      // Dialog messages with variables ({name} is a placeholder)
+      dialogArgMsg_Save: "The contents of the [{name}] template will be saved",
+      dialogArgMsg_Revert: "This will discard the current unsaved changes in [{name}] and revert to the last saved content.",
+      dialogArgMsg_DeleteConfirm: "Are you sure you want to delete [{name}]? This action cannot be undone.",
+      dialogArgMsg_IoImportConfirm: "{count} new templates will be imported (existing templates will not be overwritten). Are you sure you want to import?",
+      
+      // Default template names
+      param_defaultTemplateName0: "AI-xChk (example)",
+      param_defaultTemplateName1: "Empty Template 1",
+      // param_defaultTemplateName2: "",
+      // param_defaultTemplateName3: "",
+      param_newTemplateDefaultName: "Template",
+
+      // Default template content
+      param_defaultTemplateContent0: "# TASK\n- Please check the `Conversation with LLM-A` section below for errors (hallucinations) in the AI-generated content. If found, refute them with sound reasoning and evidence. This is your primary TASK.\n- Next, based on the information available, consider whether any parts lack comprehensiveness and whether you need to add some of your own perspective. This is your secondary TASK.\n\n## RULES\n- Unless the user asks for speculation, do not give speculative answers when there is insufficient information; reply with a warning of `Insufficient information` instead.\n\n# Conversation with LLM-A\n`````markdown\n${user_input}\n`````",
+
+      // Template manager screen
+      txt_Manager_Title: "Manage Templates",
+      btn_Manager_AddTemplate: "New Template",
+      aria_TemplateManagerBtn: "Manage Templates",
+      tooltip_TemplateManagerBtn: "Manage Templates",
+      tooltip_BtnEditTemplateName: "Edit name",
+      tooltip_BtnSaveTemplateName: "Save",
+      tooltip_BtnDeleteTemplate: "Delete",
+      tooltip_BtnRevertTemplateName: "Discard",
+      tooltip_CloseManagerBtn: "Close",
+      tooltip_ResetDefaultBtn: "⛔ Reset all templates",
+
+      // Template sorting screen
+      txt_SortPage_Title: "Template Sorting",
+      txt_SortPage_Hint: 'Click <font style="color:var(--primary-green);font-weight:700">↑ Move up</font> / <font style="color:var(--highlight-rose);font-weight:700">↓ Move down</font> on the right side of a card to swap positions one at a time; changes are saved and applied immediately.<br>Close only via the back button in the upper right or by pressing ESC.',
+      tooltip_SortEntryBtn: "Sorting",
+      aria_SortEntryBtn: "Sorting",
+      tooltip_CloseSortBtn: "Close",
+      aria_CloseSortBtn: "Close",
+      aria_MoveUp: "Move up",
+      aria_MoveTop: "Move to top",
+      aria_MoveDown: "Move down",
+      snackbar_TooFewToSort: "Fewer than 2 templates, no need to sort",
+
+      // Template export / import screen
+      tooltip_IoEntryBtn: "Export / Import",
+      aria_IoEntryBtn: "Export / Import",
+      txt_IoPage_Title: "Export / Import",
+      txt_IoPage_Hint: '・<b>localStorage</b>: data cannot be saved across browsers or OS users; use this feature to sync and share your template data.<br>・<b>Export</b>: exports all current templates in JSON format so you can save or share them.<br>・<b>Import</b>: after validation passes, templates are appended without overwriting existing ones.<br>・<b>JSON format</b>: <font class="mono-font">{"templates":[{"name":"Template name","content":"Template content"}, …]}</font>.',
+      label_IoPage_TextareaTitle: "Templates Data",
+      tooltip_IoExportBtn: "Export",
+      aria_IoExportBtn: "Export",
+      tooltip_IoClearBtn: "Clear",
+      aria_IoClearBtn: "Clear",
+      tooltip_IoImportBtn: "Import",
+      aria_IoImportBtn: "Import",
+      tooltip_IoCopyBtn: "Copy",
+      aria_IoCopyBtn: "Copy",
+      tooltip_CloseIoBtn: "Close",
+      // Snackbar messages
+      snackbar_IoExportDone: 'Export JSON has been generated (please click the "Copy" button to copy)',
+      snackbar_IoJsonEmpty: "Please enter JSON content that meets the format requirements first",
+      snackbar_IoJsonParseError: "Failed to parse JSON. Please check the format",
+      snackbar_IoNoTemplates: 'Template array not found: a {"templates":[...]} structure (or a top-level array) is required',
+      snackbarArg_IoImportDone: "{count} new templates have been imported",
+      snackbarArg_IoInvalidEntry: "Entry {index} is invalid: it must contain a non-empty name (≤30 characters) and string content",
+      snackbarArg_IoNameTooLong: "The template name in entry {index} exceeds 30 characters",
+    };
+
+    // ==================== i18n utility functions ====================
+    // Placeholder substitution: replaces {name} with vars.name
+    function formatText(str, vars) {
+      return str.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? '');
+    }
+
+    // Apply static text to elements with data-i18n attributes
+    function applyTexts() {
+      // Page title
+      document.title = TEXTS.pageTitle;
+      
+      // 普通文本
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (TEXTS[key] !== undefined) el.textContent = TEXTS[key];
+      });
+      // HTML文本
+      document.querySelectorAll('[data-i18n-html]').forEach(el => {
+        const key = el.getAttribute('data-i18n-html');
+        if (TEXTS[key] !== undefined) el.innerHTML = TEXTS[key];
+      });
+      // aria-label
+      document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+        const key = el.getAttribute('data-i18n-aria');
+        if (TEXTS[key] !== undefined) el.setAttribute('aria-label', TEXTS[key]);
+      });
+    }
+
+    // ==================== 常量定义 ====================
+    /**
+     * INT_TOP_THRESHOLD：排序界面"置顶"按钮的启用阈值。
+     * 前 4 个（idx < 4，即第1~4个）距离顶部较近，用"上移"逐次操作即可，置顶按钮保持禁用置灰；
+     * 第 5 个（idx >= 4）起启用"置顶"按钮，点击一次即移动到列表最顶端。
+     */
+    const INT_TOP_THRESHOLD = 4;
+
+    /**
+     * LS_TEMPLATE_CONFIGS_META：
+     *   localStorage 中存储【模板元数据列表】(TEMPLATE_CONFIGS)的键。
+     *   写入值为 JSON.stringify(TEMPLATE_CONFIGS) 序列化后的字符串,
+     *   加载时使用 JSON.parse() 还原。详细结构说明见下方 `let TEMPLATE_CONFIGS` 处注释。
+     */
+    const LS_TEMPLATE_CONFIGS_META = 'LS_TEMPLATE_CONFIGS_META';
+
+    // user customized default template content
+    const DEFAULT_TEMPLATE_CONTENT_0 = TEXTS.param_defaultTemplateContent0;
+    // const DEFAULT_TEMPLATE_CONTENT_1 = ""
+    // const DEFAULT_TEMPLATE_CONTENT_2 = "";
+
+    // ==================== 默认模板配置 ====================
+    const DEFAULT_TEMPLATE_CONFIGS = [
+      { key: 'LS_TEMPLATE_CONTENT_CN', tabId: 'settings', name: TEXTS.param_defaultTemplateName0, defaultContent: DEFAULT_TEMPLATE_CONTENT_0, editTime: '' },
+      { key: 'LS_TEMPLATE_CONTENT_CN2', tabId: 'settings2', name: TEXTS.param_defaultTemplateName1, defaultContent: '', editTime: '' }
+    ];
+
+    // ==================== 全局变量 ====================
+    /**
+     * TEMPLATE_CONFIGS - 页面运行期间使用的【模板元数据列表】(可新增/删除/重命名的数组),
+     *                    最终会持久化到 localStorage 中 LS_TEMPLATE_CONFIGS_META 这个键。
+     * 数组内每个配置项(一个"模板项"示例)及字段说明：
+     * {
+     *   "key": "LS_TEMPLATE_CONTENT_CN{n}", // String: 模板内容的真实 localStorage 存储键；
+     *                                         //         "n"为模板编号,从0开始,新增模板时自动生成 (如 LS_TEMPLATE_CONTENT_CN3)；
+     *                                         //         在该键下以"字符串"形式保存模板的具体正文(无JSON格式)。
+     *   "tabId": "settings{n}",              // String: 编辑区 Tab 的唯一标识,与元信息绑定,用于界面事件路由及模板选择逻辑。
+     *   "name": "模板显示名",                  // String: 展示给用户看到的名称,可在"模板管理界面"中被用户重命名,最多30字符。
+     *   "defaultContent": "……默认内容……",     // String: 该模板的兜底默认正文(首次加载未手动保存,或使用"重置为默认"功能时恢复该内容),
+     *                                         //          ${user_input} 占位符即拼接在此内容中,供用户在组装提示词时使用。
+     *   "editTime": "2026-11-09 19:25",      // String: 编辑时间戳（格式 "YYYY-MM-DD HH:mm"），
+     *                                        //          仅当模板编辑"保存"按钮(btnMgrSave)对应的确认保存成功后写入；
+     *                                        //          空字符串表示从未通过编辑按钮保存过（默认模板/新建模板的初始值）。
+     * }
+     * 
+     * JSON结构完整示例：
+     * [
+     *   {
+     *     "key": "LS_TEMPLATE_CONTENT_CN",      // 内容存储键,实际模板文本保存在该key下
+     *     "tabId": "settings",
+     *     "name": "AI-xChk(例",
+     *     "defaultContent": "# TASK\n- ...",  // 重置/初始化用的兜底模板文本
+     *     "editTime": "2026-11-09 19:25"      // 编辑时间戳(仅保存按钮点击时写入,详见字段说明)
+     *   },
+     *   {
+     *     "key": "LS_TEMPLATE_CONTENT_CN2",
+     *     "tabId": "settings2",
+     *     "name": "空模板1",
+     *     "defaultContent": "",                // 新模板通常默认内容为空,等待用户填充并保存
+     *     "editTime": ""                       // 从未通过编辑按钮保存过
+     *   }
+     * ]
+     *
+     * 关联说明：
+     *   模板正文本身不存储在 TEMPLATE_CONFIGS 内,而是单独保存在
+     *   `${config.key}` 对应的独立 localStorage 条目中 (键名例："LS_TEMPLATE_CONTENT_CN"、
+     *   "LS_TEMPLATE_CONTENT_CN2"...) —— 正文内容为纯文本字符串。
+     */
+    let TEMPLATE_CONFIGS = [];
+    let currentTab = 'main';
+    let currentDialogTabId = null; // 当前正在编辑的tabId（改为tabId而非index）
+    let selectedTemplateIndexForAssemble = null;
+    let lastSelectedTemplateTabId = null; // 组装Prompt对话框中的选中模板用tabId记忆（而非索引），避免排序改变顺序后选中项指向其他模板
+    let isRendering = false; // 渲染锁，防止快速点击冲突
+
+    // ==================== localStorage 安全封装 ====================
+    function safeSetItem(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        console.warn('Failed to write to localStorage (possibly restricted by file: protocol):', e);
+        return false;
+      }
+    }
+
+    function safeGetItem(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        console.warn('Failed to read from localStorage (possibly restricted by file: protocol):', e);
+        return null;
+      }
+    }
+
+    // ==================== TEMPLATE_CONFIGS 持久化 ====================
+    function loadTemplateConfigs() {
+      const saved = safeGetItem(LS_TEMPLATE_CONFIGS_META);
+      if (saved) {
+        try {
+          TEMPLATE_CONFIGS = JSON.parse(saved);
+          // 兼容旧数据 —— 缺失 editTime（编辑时间戳）字段时补充为空字符串
+          TEMPLATE_CONFIGS.forEach(cfg => {
+            if (cfg && cfg.editTime === undefined) cfg.editTime = '';
+          });
+        } catch (e) {
+          console.warn('Failed to parse TEMPLATE_CONFIGS, using default configuration');
+          TEMPLATE_CONFIGS = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE_CONFIGS));
+          saveTemplateConfigs();
+        }
+      } else {
+        TEMPLATE_CONFIGS = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE_CONFIGS));
+        saveTemplateConfigs();
+      }
+    }
+
+    function saveTemplateConfigs() {
+      safeSetItem(LS_TEMPLATE_CONFIGS_META, JSON.stringify(TEMPLATE_CONFIGS));
+    }
+
+    // ==================== 获取下一个模板编号 ====================
+    function getNextTemplateNumber() {
+      let maxNum = 0;
+      TEMPLATE_CONFIGS.forEach(cfg => {
+        // 精确剥离前缀，避免正则误判
+        const numStr = cfg.key.replace('LS_TEMPLATE_CONTENT_CN', '');
+        const num = numStr === '' ? 0 : parseInt(numStr, 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      });
+      return maxNum + 1;
+    }
+
+    // ==================== 模板管理相关全局变量 ====================
+    let currentEditingTabId = null; // 当前在管理界面中编辑的模板tabId
+    let mgrOverlay = null;
+    let mgrTextarea = null;
+    let mgrNameInput = null;
+    let mgrTemplateCountEl = null;
+    let tplListEl = null;
+    let tplNameCountEl = null;
+    let managerTemplateCountEl = null;
+    let btnEditName = null;   // 编辑名称按钮
+    let btnSaveName = null;   // 保存名称按钮
+    let btnDeleteTemplate = null; // 删除模板按钮
+    let btnRevertName = null;   // 还原名称按钮（编辑名称时显示，占据删除按钮位置）
+    let isNameEditing = false; // 名称是否处于编辑状态
+    let originalNameBeforeEdit = ''; // 进入编辑状态前的名称，用于取消时还原
+    // 未保存内容草稿（仅内存，不持久化）：以 tabId 为 key 保存模板内容草稿
+    let unsavedDrafts = {};
+    // 当前正在编辑模板的基线内容：最近一次已保存内容，用于脏判断和回退目标
+    let currentBaselineContent = '';
+
+    // ==================== 模板排序相关全局变量 ====================
+    let sortOverlay = null;
+    let sortListEl = null;
+    let isSortAnimating = false; // 排序交换动画期间的渲染锁（与 isRendering 同模式）
+    let pendingSortSelectedTabId = null; // 进入排序界面之前管理界面中选中的模板项tabId，关闭排序界面时恢复选中
+
+    // ==================== 模板管理界面函数 ====================
+    function openManager() {
+      if (!mgrOverlay) return;
+      mgrOverlay.classList.add('mode-page');
+      
+      mgrOverlay.classList.remove('active');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        mgrOverlay.classList.add('active');
+        // 打开管理界面后更新回到顶部按钮状态
+        toggleFab();
+      }));
+      document.body.style.overflow = 'hidden';
+      
+      // 打开时从顶部显示，并使高度计算基于稳定的顶部位置
+      mgrOverlay.scrollTop = 0;
+      // 大屏打开时计算一次左侧模板列表面板高度；打开后不再随窗口变化重算
+      applyMgrTplListPanelHeight();
+
+      // 渲染列表并选中第一个
+      renderManagerList();
+      if (TEMPLATE_CONFIGS.length > 0) {
+        selectTemplateInManager(TEMPLATE_CONFIGS[0].tabId);
+      }
+    }
+
+    function closeManager() {
+      if (!mgrOverlay) return;
+      // 关闭前检查未保存状态
+      if (!beforeLeaveCurrentTemplate()) return;
+      mgrOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+      currentEditingTabId = null;
+      currentBaselineContent = '';
+      // 关闭时清除 大屏列表高度变量，避免下次打开或窄屏残留影响
+      clearMgrTplListPanelHeight();
+      // 关闭管理界面后更新回到顶部按钮状态
+      toggleFab();
+    }
+
+    // ==================== 大屏模板管理左侧列表高度计算 ====================
+    // 仅在宽度 >900px 且打开模板管理界面时计算一次；已打开后窗口大小变化不重新计算。
+    function applyMgrTplListPanelHeight() {
+      if (!mgrOverlay) return;
+
+      // 仅大屏布局生效（与 CSS @media (min-width: 901px) 对应）
+      if (!window.matchMedia || !window.matchMedia('(min-width: 901px)').matches) {
+        clearMgrTplListPanelHeight();
+        return;
+      }
+
+      const editorHeader = document.querySelector('.tpl-editor .editor-header');
+      const settingsSection = document.querySelector('.tpl-editor .settings-section');
+      const textareaWrapper = mgrTextarea ? mgrTextarea.closest('.textarea-wrapper') : null;
+      const managerHeader = document.querySelector('.manager-header');
+      const managerBody = document.querySelector('.manager-body');
+      const mgrPanelBodyScroll = document.querySelector('.mgr-panel-body-scroll');
+
+      if (!editorHeader || !settingsSection || !mgrTextarea || !textareaWrapper || !managerHeader || !managerBody) {
+        return;
+      }
+
+      // 最小高度：使 .tpl-list-panel 底部与空 #mgrTemplateTextarea 底部齐平。
+      // 空模板高度以 #mgrTemplateTextarea 的 CSS min-height 为准（当前 .template-textarea 为 400px）。
+      const textareaMinHeight = parseFloat(getComputedStyle(mgrTextarea).minHeight) || 400;
+      const editorHeaderMarginBottom = parseFloat(getComputedStyle(editorHeader).marginBottom) || 0;
+      const settingsSectionMarginBottom = parseFloat(getComputedStyle(settingsSection).marginBottom) || 0;
+      const textareaWrapperMarginTop = parseFloat(getComputedStyle(textareaWrapper).marginTop) || 0;
+
+      const minHeight = Math.ceil(
+        editorHeader.offsetHeight
+        + editorHeaderMarginBottom
+        + settingsSection.offsetHeight
+        + settingsSectionMarginBottom
+        + textareaWrapperMarginTop
+        + textareaMinHeight
+      );
+
+      // 可用高度：当前视窗高度减去模板管理页顶部占用与底部保留空间。
+      // 由于需求要求打开后不随窗口变化重算，因此这里只在打开时读取一次。
+      const overlayStyles = getComputedStyle(mgrOverlay);
+      const managerBodyStyles = getComputedStyle(managerBody);
+      const overlayPaddingTop = parseFloat(overlayStyles.paddingTop) || 0;
+      const overlayPaddingBottom = parseFloat(overlayStyles.paddingBottom) || 0;
+      const managerBodyPaddingTop = parseFloat(managerBodyStyles.paddingTop) || 0;
+      const panelBodyPaddingBottom = mgrPanelBodyScroll
+        ? (parseFloat(getComputedStyle(mgrPanelBodyScroll).paddingBottom) || 0)
+        : 0;
+
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      const availableHeight = Math.floor(
+        viewportHeight
+        - overlayPaddingTop
+        - overlayPaddingBottom
+        - managerHeader.offsetHeight
+        - managerBodyPaddingTop
+        - panelBodyPaddingBottom
+      );
+
+      const maxHeight = Math.max(minHeight, availableHeight);
+
+      mgrOverlay.style.setProperty('--mgr-list-panel-min-height', minHeight + 'px');
+      mgrOverlay.style.setProperty('--mgr-list-panel-max-height', maxHeight + 'px');
+    }
+
+    // 清除 大屏列表高度变量
+    function clearMgrTplListPanelHeight() {
+      if (!mgrOverlay) return;
+      mgrOverlay.style.removeProperty('--mgr-list-panel-min-height');
+      mgrOverlay.style.removeProperty('--mgr-list-panel-max-height');
+    }
+
+    // 获取模板基线内容：最近一次已保存内容（初始化后通常不为空），若无则使用默认内容作为兜底
+    function getTemplateBaselineContent(config) {
+      if (!config) return '';
+      const saved = safeGetItem(config.key);
+      return (saved !== null && saved !== '') ? saved : config.defaultContent;
+    }
+
+    // 检查模板名是否处于编辑状态；若是则提示并阻止切换/关闭/新增等操作
+    function isTemplateNameEditingBlocking() {
+      if (isNameEditing) {
+        showSnackbar(TEXTS.snackbar_NameEditingCannotLeave);
+        return true;
+      }
+      return false;
+    }
+
+    // 若当前编辑内容相对基线有变化，则处理草稿：非空内容保存草稿，空内容清除草稿；返回是否存在未保存的内容变动
+    function storeCurrentDraftIfDirty() {
+      if (!currentEditingTabId || !mgrTextarea) return false;
+      const config = TEMPLATE_CONFIGS.find(c => c.tabId === currentEditingTabId);
+      if (!config) return false;
+      
+      const currentContent = mgrTextarea.value;
+      // 对比基线判断内容是否实际发生了变化（去掉首尾空白，避免无效空格误判）
+      if (currentContent.trim() === currentBaselineContent.trim()) {
+        // 若内容未变化，清除草稿
+        delete unsavedDrafts[currentEditingTabId];
+        return false;
+      }
+      
+      // 内容有变化：非空内容保存草稿，空内容清除草稿（因为空内容不属于有效草稿）
+      if (currentContent.trim() !== '') {
+        unsavedDrafts[currentEditingTabId] = currentContent;
+      } else {
+        delete unsavedDrafts[currentEditingTabId];
+      }
+      return true;
+    }
+
+    // 切换/关闭/新增前的统一处理：先阻止名称编辑状态，再暂存未保存内容草稿，最后针对未保存内容给出提示
+    function beforeLeaveCurrentTemplate() {
+      if (isTemplateNameEditingBlocking()) return false;
+      
+      const hasUnsavedContent = storeCurrentDraftIfDirty();
+      if (hasUnsavedContent && currentEditingTabId) {
+        const config = TEMPLATE_CONFIGS.find(c => c.tabId === currentEditingTabId);
+        if (config) {
+          showSnackbar(formatText(TEXTS.snackbarArgMsg_TemplateUnsaved, { name: config.name }));
+        }
+      }
+      return true;
+    }
+
+
+    // 成当前编辑时间戳字符串（格式：YYYY-MM-DD HH:mm）。
+    // 仅在模板内容保存成功（btnMgrSave -> 确认对话框 -> confirmDialog save 分支）时
+    // 写入对应模板的 editTime 字段，并随 TEMPLATE_CONFIGS 持久化到 localStorage。
+    function formatEditTimestamp(date) {
+      const d = date || new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // 渲染管理界面左侧模板列表
+    function renderManagerList() {
+      if (!tplListEl) return;
+      tplListEl.innerHTML = '';
+      
+      TEMPLATE_CONFIGS.forEach(config => {
+        const item = document.createElement('div');
+        item.className = 'tpl-item';
+        item.dataset.tabId = config.tabId;
+        
+        // 检查是否有未保存的内容更改（用于显示红点）；模板名编辑状态不在此处检查
+        const savedContent = safeGetItem(config.key) || '';
+        const isContentDirty = (currentEditingTabId === config.tabId)
+          ? (mgrTextarea && mgrTextarea.value !== currentBaselineContent)
+          : (unsavedDrafts[config.tabId] !== undefined);
+        const isDirty = isContentDirty;
+        
+        item.innerHTML = `
+          <div class="tpl-item-name">${config.name}${isDirty ? '<span class="dirty-dot"></span>' : ''}</div>
+          <div class="tpl-item-meta"><span>${savedContent.length} ${TEXTS.odd_str_character}</span><span class="tpl-item-edit-time">${config.editTime || ''}</span></div>
+        `;
+        item.addEventListener('click', () => selectTemplateInManager(config.tabId));
+        tplListEl.appendChild(item);
+      });
+      
+      // 更新模板数量显示（count-chip 仅显示数字）
+      if (managerTemplateCountEl) {
+        managerTemplateCountEl.textContent = TEMPLATE_CONFIGS.length;
+      }
+    }
+
+    // 在管理界面中选中并加载模板到编辑区
+    function selectTemplateInManager(tabId) {
+      const config = TEMPLATE_CONFIGS.find(c => c.tabId === tabId);
+      if (!config) return;
+      
+      // 点击当前正在编辑的模板时，不重新加载内容，避免丢失当前编辑状态
+      if (currentEditingTabId === tabId) {
+        document.querySelectorAll('.tpl-item').forEach(el => {
+          el.classList.toggle('active', el.dataset.tabId === tabId);
+        });
+        updateManagerDirtyState();
+        return;
+      }
+      
+      // 如果切换前当前编辑的模板有未保存更改，先暂存草稿；若模板名正在编辑则阻止切换
+      if (currentEditingTabId) {
+        if (!beforeLeaveCurrentTemplate()) return;
+      }
+      
+      currentEditingTabId = tabId;
+      
+      // 切换模板时退出名称编辑模式
+      exitNameEditMode();
+      
+      // 更新列表选中状态
+      document.querySelectorAll('.tpl-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.tabId === tabId);
+      });
+      
+      // 加载模板内容到编辑区
+      if (mgrNameInput) {
+        mgrNameInput.value = config.name;
+        updateNameCount();
+      }
+      
+      if (mgrTextarea) {
+        currentBaselineContent = getTemplateBaselineContent(config);
+        const draftContent = unsavedDrafts[tabId];
+        mgrTextarea.value = (draftContent !== undefined) ? draftContent : currentBaselineContent;
+        mgrTextarea.style.height = 'auto';
+        mgrTextarea.style.height = mgrTextarea.scrollHeight + 'px';
+        if (mgrTemplateCountEl) mgrTemplateCountEl.textContent = mgrTextarea.value.length;
+      }
+      
+      updateManagerDirtyState();
+    }
+
+    // 更新名称字数统计
+    function updateNameCount() {
+      if (mgrNameInput && tplNameCountEl) {
+        tplNameCountEl.textContent = `${mgrNameInput.value.length}/30`;
+      }
+    }
+
+    // 检查并更新未保存状态（Dirty State）
+    function updateManagerDirtyState() {
+      if (!currentEditingTabId || !mgrTextarea) return;
+      
+      const config = TEMPLATE_CONFIGS.find(c => c.tabId === currentEditingTabId);
+      if (!config) return;
+      
+      // 更新列表中对应项的红点
+      renderManagerList();
+      // 重新选中当前项（因为renderManagerList会重建DOM）
+      const activeItem = document.querySelector(`.tpl-item[data-tab-id="${currentEditingTabId}"]`);
+      if (activeItem) activeItem.classList.add('active');
+    }
+
+    // ==================== 模板名称编辑功能（独立于内容保存） ====================
+    // 进入名称编辑模式
+    function enterNameEditMode() {
+      if (!mgrNameInput || !btnEditName || !btnSaveName) return;
+      
+      isNameEditing = true;
+      originalNameBeforeEdit = mgrNameInput.value; // 记录编辑前的原始名称，用于取消还原
+      mgrNameInput.readOnly = false;
+      mgrNameInput.classList.add('editing');
+      mgrNameInput.focus();
+      
+      // 切换按钮显示：隐藏编辑按钮，显示保存按钮
+      btnEditName.style.display = 'none';
+      btnSaveName.style.display = 'inline-flex';
+      // 编辑状态下用还原按钮替换删除按钮的位置
+      if (btnDeleteTemplate) btnDeleteTemplate.style.display = 'none';
+      if (btnRevertName) btnRevertName.style.display = 'inline-flex';
+    }
+
+    // 退出名称编辑模式
+    function exitNameEditMode() {
+      if (!mgrNameInput || !btnEditName || !btnSaveName) return;
+      
+      isNameEditing = false;
+      mgrNameInput.readOnly = true;
+      mgrNameInput.classList.remove('editing');
+      
+      // 切换按钮显示：显示编辑按钮，隐藏保存按钮
+      btnEditName.style.display = 'inline-flex';
+      btnSaveName.style.display = 'none';
+      // 恢复删除按钮显示，隐藏还原按钮
+      if (btnDeleteTemplate) btnDeleteTemplate.style.display = 'inline-flex';
+      if (btnRevertName) btnRevertName.style.display = 'none';
+    }
+
+    // 取消编辑模板名称：还原为进入编辑前的原始值并退出编辑模式
+    function revertTemplateName() {
+      if (!mgrNameInput) return;
+      mgrNameInput.value = originalNameBeforeEdit;
+      updateNameCount();
+      exitNameEditMode();
+      updateManagerDirtyState();
+    }
+
+    // 保存模板名称（独立保存，不依赖模板内容的校验）
+    function saveTemplateName() {
+      if (!currentEditingTabId || !mgrNameInput) return;
+      
+      const config = TEMPLATE_CONFIGS.find(c => c.tabId === currentEditingTabId);
+      if (!config) return;
+      
+      const newName = mgrNameInput.value.trim();
+      
+      // 验证名称
+      if (!newName) {
+        showSnackbar(TEXTS.snackbar_TabNameEmpty);
+        mgrNameInput.focus();
+        return;
+      }
+      
+      if (newName.length > 30) {
+        showSnackbar(TEXTS.snackbar_TabNameTooLong);
+        mgrNameInput.focus();
+        return;
+      }
+      
+      // 名称有变化时才保存
+      if (newName !== config.name) {
+        config.name = newName;
+        saveTemplateConfigs();
+        showSnackbar(TEXTS.snackbar_TabNameUpdated);
+      }
+      
+      // 退出编辑模式
+      exitNameEditMode();
+      
+      // 更新列表显示
+      renderManagerList();
+      // 重新选中当前项（因为renderManagerList会重建DOM）
+      const activeItem = document.querySelector(`.tpl-item[data-tab-id="${currentEditingTabId}"]`);
+      if (activeItem) activeItem.classList.add('active');
+    }
+
+    // 从管理界面发起删除模板
+    function confirmDeleteFromManager() {
+      if (!currentEditingTabId) return;
+      openDialog('delete_confirm', null, currentEditingTabId);
+    }
+
+    // ==================== 渲染所有Settings (现为渲染管理界面) ====================
+    function renderSettingsTabs() {
+      if (isRendering) return;
+      isRendering = true;
+      
+      // 初始化localStorage中的模板内容
+      TEMPLATE_CONFIGS.forEach(config => {
+        const saved = safeGetItem(config.key);
+        if (saved === null || saved === '') {
+          safeSetItem(config.key, config.defaultContent);
+        }
+      });
+      
+      // 如果管理界面已初始化，刷新列表
+      if (tplListEl) {
+        renderManagerList();
+        // 如果当前正在编辑的模板还存在，保持选中；否则选第一个
+        if (currentEditingTabId && TEMPLATE_CONFIGS.some(c => c.tabId === currentEditingTabId)) {
+          selectTemplateInManager(currentEditingTabId);
+        } else if (TEMPLATE_CONFIGS.length > 0) {
+          selectTemplateInManager(TEMPLATE_CONFIGS[0].tabId);
+        }
+      }
+      
+      isRendering = false;
+    }
+
+    // ==================== 添加新模板（带确认对话框） ====================
+    function handleAddNewTab() {
+      if (isRendering) return;
+      // 打开确认对话框而不是直接添加
+      if (!beforeLeaveCurrentTemplate()) return;
+      openDialog('add_tab', null);
+    }
+
+    // ==================== 执行实际添加新模板逻辑 ====================
+    function executeAddNewTab() {
+      if (isRendering) return;
+      
+      // 1. 生成新配置 (JS-A)
+      const nextN = getNextTemplateNumber();
+      const newConfig = {
+        key: `LS_TEMPLATE_CONTENT_CN${nextN}`,
+        tabId: `settings${nextN}`,
+        name: `${TEXTS.param_newTemplateDefaultName}${nextN}`,
+        defaultContent: '',
+        editTime: '' // 新模板尚未通过编辑按钮保存过，编辑时间戳为空
+      };
+      
+      // 2. Push到配置数组并保存
+      TEMPLATE_CONFIGS.push(newConfig);
+      saveTemplateConfigs();
+      
+      // 3. 初始化新模板的localStorage
+      safeSetItem(newConfig.key, newConfig.defaultContent);
+      
+      // 4. 重新渲染管理界面列表
+      renderManagerList();
+      
+      // 5. 在管理界面中选中新模板
+      selectTemplateInManager(newConfig.tabId);
+      
+      showSnackbar(formatText(TEXTS.snackbarArgMsg_TemplateCreated, { name: newConfig.name }));
+    }
+
+    // ==================== 重置为默认配置 ====================
+    function resetToDefaultConfigs() {
+      if (isRendering) return;
+      // 打开确认对话框
+      openDialog('reset_all', null);
+    }
+
+    // ==================== 执行重置为默认配置逻辑 ====================
+    function executeResetToDefault() {
+      // 清理所有模板的localStorage内容
+      TEMPLATE_CONFIGS.forEach(config => {
+        try {
+          localStorage.removeItem(config.key);
+        } catch (e) {
+          console.warn('Failed to remove template content from localStorage:', e);
+        }
+      });
+      
+      // 用DEFAULT_TEMPLATE_CONFIGS覆盖LS_TEMPLATE_CONFIGS_META
+      TEMPLATE_CONFIGS = JSON.parse(JSON.stringify(DEFAULT_TEMPLATE_CONFIGS));
+      saveTemplateConfigs();
+      
+      // 重新初始化并渲染管理界面
+      unsavedDrafts = {};
+      currentBaselineContent = '';
+      currentEditingTabId = null;
+      if (isNameEditing) {
+        exitNameEditMode();
+      }
+      renderSettingsTabs();
+      
+      showSnackbar(TEXTS.snackbar_ResetDone);
+    }
+
+    // ==================== 删除模板 ====================
+    function deleteTemplate(tabId) {
+      const configIndex = TEMPLATE_CONFIGS.findIndex(c => c.tabId === tabId);
+      if (configIndex === -1) return;
+      
+      const config = TEMPLATE_CONFIGS[configIndex];
+      
+      // 从localStorage删除该模板的内容（清理垃圾数据）
+      try {
+        localStorage.removeItem(config.key);
+      } catch (e) {
+        console.warn('Failed to remove template content from localStorage:', e);
+      }
+      
+      // 从数组中删除
+      TEMPLATE_CONFIGS.splice(configIndex, 1);
+      saveTemplateConfigs();
+      
+      // 删除该模板相关的未保存草稿
+      delete unsavedDrafts[tabId];
+      
+      // 如果删除的是当前正在编辑的模板，清除编辑状态
+      if (currentEditingTabId === tabId) {
+        currentEditingTabId = null;
+        currentBaselineContent = '';
+      }
+      
+      // 重新渲染管理界面
+      renderSettingsTabs();
+      
+      showSnackbar(formatText(TEXTS.snackbarArgMsg_TemplateDeleted, { name: config.name }));
+    }
+
+    // ==================== 模板排序 ====================
+    // 排序结果即 TEMPLATE_CONFIGS 数组的顺序，交换后立即通过 saveTemplateConfigs() 持久化
+    function openSortPage() {
+      if (!sortOverlay) return;
+      if (TEMPLATE_CONFIGS.length < 2) {
+        showSnackbar(TEXTS.snackbar_TooFewToSort);
+        return;
+      }
+      // 与模板管理界面的切换/关闭一致：阻止模板名编辑中离开，并暂存未保存草稿
+      if (!beforeLeaveCurrentTemplate()) return;
+
+      // 记录进入排序前管理界面当前选中的模板项，关闭排序界面时恢复选中状态
+      const activeItem = tplListEl ? tplListEl.querySelector('.tpl-item.active') : null;
+      pendingSortSelectedTabId = activeItem ? activeItem.dataset.tabId : currentEditingTabId;
+
+      renderSortList();
+
+      // 双 rAF 触发进入动画（同 openManager）
+      sortOverlay.classList.remove('active');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        sortOverlay.classList.add('active');
+        toggleFab();
+      }));
+      document.body.style.overflow = 'hidden';
+      sortOverlay.scrollTop = 0;
+    }
+
+    function closeSortPage() {
+      if (!sortOverlay) return;
+      sortOverlay.classList.remove('active');
+      // 排序界面只能从模板管理界面进入，关闭后返回管理界面，页面滚动锁定保持
+      document.body.style.overflow = 'hidden';
+      toggleFab();
+
+      // 以新的排序顺序重新渲染管理界面左侧模板列表
+      renderManagerList();
+
+      // 恢复进入排序界面前选中的模板项（含滚动可视范围定位）
+      const restoreTabId = pendingSortSelectedTabId || currentEditingTabId;
+      pendingSortSelectedTabId = null;
+      if (restoreTabId && tplListEl) {
+        const item = tplListEl.querySelector(`.tpl-item[data-tab-id="${restoreTabId}"]`);
+        if (item) {
+          item.classList.add('active');
+          // 若列表有纵向滚动条，仅滚动列表容器本身，保证选中项在可视范围内（最小化滚动）
+          if (tplListEl.scrollHeight > tplListEl.clientHeight) {
+            const listRect = tplListEl.getBoundingClientRect();
+            const itemRect = item.getBoundingClientRect();
+            if (itemRect.top < listRect.top) {
+              tplListEl.scrollTop += itemRect.top - listRect.top;
+            } else if (itemRect.bottom > listRect.bottom) {
+              tplListEl.scrollTop += itemRect.bottom - listRect.bottom;
+            }
+          }
+        }
+      }
+    }
+
+    // 渲染排序卡片列表（顺序即 TEMPLATE_CONFIGS 数组顺序）
+    function renderSortList() {
+      if (!sortListEl) return;
+      sortListEl.innerHTML = '';
+      const lastIdx = TEMPLATE_CONFIGS.length - 1;
+
+      TEMPLATE_CONFIGS.forEach((cfg, idx) => {
+        const card = document.createElement('div');
+        card.className = 'sort-card';
+        card.dataset.tabId = cfg.tabId;
+        const contentLen = (safeGetItem(cfg.key) || '').length;
+        card.innerHTML = `
+          <div class="sort-index">${idx + 1}</div>
+          <div class="sort-card-main">
+            <div class="sort-card-name">${cfg.name}</div>
+            <div class="sort-card-meta">${contentLen} ${TEXTS.odd_str_character}</div>
+          </div>
+          <div class="sort-card-actions">
+            <button type="button" class="sort-move-btn move-top" aria-label="${TEXTS.aria_MoveTop} ${cfg.name}" ${idx < INT_TOP_THRESHOLD ? 'disabled' : ''}>
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M7 15.8L12 10.8L17 15.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 7H17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button type="button" class="sort-move-btn move-up" aria-label="${TEXTS.aria_MoveUp} ${cfg.name}" ${idx === 0 ? 'disabled' : ''}>
+              <svg viewBox="0 0 24 24"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
+            </button>
+            <button type="button" class="sort-move-btn move-down" aria-label="${TEXTS.aria_MoveDown} ${cfg.name}" ${idx === lastIdx ? 'disabled' : ''}>
+              <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg>
+            </button>
+          </div>
+        `;
+        card.querySelector('.move-top').addEventListener('click', () => moveTemplateToTop(idx));
+        card.querySelector('.move-up').addEventListener('click', () => moveTemplate(idx, -1));
+        card.querySelector('.move-down').addEventListener('click', () => moveTemplate(idx, 1));
+        sortListEl.appendChild(card);
+      });
+    }
+
+    // 交换并持久化：顺序即 TEMPLATE_CONFIGS 数组顺序（FLIP 动画 + 焦点保持）
+    function moveTemplate(index, dir) {
+      if (isSortAnimating) return;
+      const target = index + dir;
+      if (target < 0 || target >= TEMPLATE_CONFIGS.length) return;
+
+      // FLIP (First)：记录交换前各卡片位置
+      const firstPos = new Map();
+      sortListEl.querySelectorAll('.sort-card').forEach(el => {
+        firstPos.set(el.dataset.tabId, el.getBoundingClientRect().top);
+      });
+
+      // 交换数组元素并立即持久化到 localStorage（LS_TEMPLATE_CONFIGS_META）
+      const tmp = TEMPLATE_CONFIGS[index];
+      TEMPLATE_CONFIGS[index] = TEMPLATE_CONFIGS[target];
+      TEMPLATE_CONFIGS[target] = tmp;
+      saveTemplateConfigs();
+
+      renderSortList();
+
+      // 焦点保持：移到新位置的同向按钮（到达边界则取反向按钮），键盘可连续操作
+      focusSortMoveButton(target, dir);
+
+      // FLIP (Last / Invert / Play)
+      isSortAnimating = true;
+      sortListEl.querySelectorAll('.sort-card').forEach(el => {
+        const first = firstPos.get(el.dataset.tabId);
+        if (first === undefined) return;
+        const dy = first - el.getBoundingClientRect().top;
+        if (dy !== 0) {
+          el.style.transition = 'none';
+          el.style.transform = `translateY(${dy}px)`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            el.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+            el.style.transform = 'translateY(0)';
+          }));
+        }
+      });
+      setTimeout(() => {
+        isSortAnimating = false;
+        sortListEl.querySelectorAll('.sort-card').forEach(el => { el.style.transition = ''; el.style.transform = ''; });
+      }, 260);
+    }
+
+    function focusSortMoveButton(index, dir) {
+      const card = sortListEl.children[index];
+      if (!card) return;
+      const primary = card.querySelector(dir < 0 ? '.move-up' : '.move-down');
+      const fallback = card.querySelector(dir < 0 ? '.move-down' : '.move-up');
+      const btn = (primary && !primary.disabled) ? primary : fallback;
+      if (btn && !btn.disabled) btn.focus();
+    }
+
+    // (置顶)：把距离顶部较远的模板卡片一次性移动到列表最顶端。
+    // 通过 splice+unshift 移到下标0后立即持久化，随后播放 FLIP 动画；
+    // 动画结束后平滑滚回页面顶部，方便用户确认置顶结果。
+    function moveTemplateToTop(index) {
+      if (isSortAnimating) return;
+      if (index <= 0 || index >= TEMPLATE_CONFIGS.length) return;
+
+      // FLIP (First)：记录移动前各卡片位置
+      const firstPos = new Map();
+      sortListEl.querySelectorAll('.sort-card').forEach(el => {
+        firstPos.set(el.dataset.tabId, el.getBoundingClientRect().top);
+      });
+
+      // 将目标元素移到数组开头并立即持久化到 localStorage（LS_TEMPLATE_CONFIGS_META）
+      const moved = TEMPLATE_CONFIGS.splice(index, 1)[0];
+      TEMPLATE_CONFIGS.unshift(moved);
+      saveTemplateConfigs();
+
+      renderSortList();
+
+      // 焦点保持：置顶后该卡片位于下标0，其上移/置顶均禁用，回退聚焦"下移"
+      focusSortMoveButton(0, -1);
+
+      // FLIP (Last / Invert / Play)
+      isSortAnimating = true;
+      sortListEl.querySelectorAll('.sort-card').forEach(el => {
+        const first = firstPos.get(el.dataset.tabId);
+        if (first === undefined) return;
+        const dy = first - el.getBoundingClientRect().top;
+        if (dy !== 0) {
+          el.style.transition = 'none';
+          el.style.transform = `translateY(${dy}px)`;
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            el.style.transition = 'transform 0.25s cubic-bezier(0.4, 0, 0.2, 1)';
+            el.style.transform = 'translateY(0)';
+          }));
+        }
+      });
+      setTimeout(() => {
+        isSortAnimating = false;
+        sortListEl.querySelectorAll('.sort-card').forEach(el => { el.style.transition = ''; el.style.transform = ''; });
+        // 置顶完成后自动滚回顶部：用户可立即看到移动到顶端的卡片
+        scrollSortToTop();
+      }, 260);
+    }
+
+    // 排序界面的回到顶部
+    function scrollSortToTop() {
+      if (sortOverlay) sortOverlay.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ==================== 模板配置导出/导入界面 ====================
+    // io 界面元素引用（与排序界面同机制；仅从模板管理界面进入，点击遮罩不关闭）
+    let ioOverlay = null;
+    let ioJsonTextarea = null;
+    let pendingIoImportList = null; // 导入确认对话框暂存的待导入模板列表
+    let ioFabTop = null;
+
+    // 生成带本地时区偏移的 ISO 时间串（供导出 JSON 的 exportedAt 字段使用）
+    function toIsoLocalString(date) {
+      const d = date || new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      const tz = -d.getTimezoneOffset();
+      const sign = tz >= 0 ? '+' : '-';
+      const tzAbs = Math.abs(tz);
+      const tzH = pad(Math.floor(tzAbs / 60));
+      const tzM = pad(tzAbs % 60);
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+        'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) +
+        sign + tzH + ':' + tzM;
+    }
+
+    // textarea 自动增高（与其他 auto-grow textarea 同路径）
+    function autoGrowIoTextarea() {
+      if (!ioJsonTextarea) return;
+      ioJsonTextarea.style.height = 'auto';
+      ioJsonTextarea.style.height = ioJsonTextarea.scrollHeight + 'px';
+    }
+
+    function openIoPage() {
+      if (!ioOverlay) return;
+      // 与模板管理界面的离开规则一致：阻止名称编辑中离开，并暂存未保存内容草稿
+      if (!beforeLeaveCurrentTemplate()) return;
+      // 双 rAF 触发进入动画（同 openManager / openSortPage）
+      ioOverlay.classList.remove('active');
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        ioOverlay.classList.add('active');
+        toggleFab();
+      }));
+      document.body.style.overflow = 'hidden';
+      ioOverlay.scrollTop = 0;
+      autoGrowIoTextarea();
+    }
+
+    function closeIoPage() {
+      if (!ioOverlay) return;
+      ioOverlay.classList.remove('active');
+      // io 界面只能从模板管理界面进入，关闭后返回管理界面，页面滚动锁定保持
+      document.body.style.overflow = 'hidden';
+      toggleFab();
+      // 将 io 期间产生的变更（如新导入的模板）反映回管理界面列表
+      renderManagerList();
+      // 恢复当前编辑模板的选中态
+      if (currentEditingTabId && tplListEl) {
+        const activeItem = tplListEl.querySelector('.tpl-item[data-tab-id="' + currentEditingTabId + '"]');
+        if (activeItem) activeItem.classList.add('active');
+      }
+    }
+
+    function scrollIoToTop() {
+      if (ioOverlay) ioOverlay.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // -------------------- 导出 --------------------
+    // 导出结构：仅导出 name/content（key/tabId 等 localStorage 实现细节不导出）；数组顺序即模板顺序。
+    // version 取当前版本号；exportedAt 为本地时区时间。
+    function ioExportConfigs() {
+      if (!ioJsonTextarea) return;
+      const data = {
+        version: version,
+        exportedAt: toIsoLocalString(),
+        templates: TEMPLATE_CONFIGS.map(cfg => ({
+          name: cfg.name,
+          content: safeGetItem(cfg.key) || ''
+        }))
+      };
+      ioJsonTextarea.value = JSON.stringify(data, null, 2);
+      autoGrowIoTextarea();
+      ioJsonTextarea.scrollTop = 0;
+      showSnackbar(TEXTS.snackbar_IoExportDone);
+    }
+
+    // -------------------- 导入 --------------------
+    // 导入校验：仅校验 templates 结构的 name / content 字段与 name ≤30 字符；
+    // version 与 exportedAt 为无关紧要信息，不校验。支持 {templates:[...]} 与顶层数组两种结构。
+    function ioRequestImport() {
+      if (!ioJsonTextarea) return;
+      const text = ioJsonTextarea.value.trim();
+      if (!text) {
+        showSnackbar(TEXTS.snackbar_IoJsonEmpty);
+        ioJsonTextarea.focus();
+        return;
+      }
+      // 1. JSON 解析
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        showSnackbar(TEXTS.snackbar_IoJsonParseError);
+        return;
+      }
+      // 2. 提取模板数组
+      const list = Array.isArray(data)
+        ? data
+        : ((data && Array.isArray(data.templates)) ? data.templates : null);
+      if (!list || !Array.isArray(list) || list.length === 0) {
+        showSnackbar(TEXTS.snackbar_IoNoTemplates);
+        return;
+      }
+      // 3. 逐条校验：name/content 结构完整，name 非空且 ≤30 字符，content 为字符串
+      for (let i = 0; i < list.length; i++) {
+        const item = list[i];
+        const isObj = item !== null && typeof item === 'object';
+        const nameOk = isObj && typeof item.name === 'string' && item.name.trim() !== '';
+        const contentOk = isObj && typeof item.content === 'string';
+        if (!nameOk || !contentOk) {
+          showSnackbar(formatText(TEXTS.snackbarArg_IoInvalidEntry, { index: i + 1 }));
+          return;
+        }
+        if (item.name.trim().length > 30) {
+          showSnackbar(formatText(TEXTS.snackbarArg_IoNameTooLong, { index: i + 1 }));
+          return;
+        }
+      }
+      // 校验通过：暂存待导入数据并弹出导入确认对话框（防止误触导入）
+      pendingIoImportList = list;
+      openDialog('io_import_confirm', null);
+    }
+
+    // 全部当作新模板处理：走 getNextTemplateNumber() 自动采番，逐条持久化（复用新增模板的存储约定）
+    function ioExecuteImport(list) {
+      if (isRendering) return;
+      let count = 0;
+      list.forEach(item => {
+        const nextN = getNextTemplateNumber();
+        const name = item.name.trim();
+        const content = item.content || '';
+        const newConfig = {
+          key: 'LS_TEMPLATE_CONTENT_CN' + nextN,
+          tabId: 'settings' + nextN,
+          name: name,
+          defaultContent: content, // 导入时以导入内容作为该模板的兜底默认内容
+          editTime: '' // 尚未通过编辑界面保存过，编辑时间戳为空
+        };
+        TEMPLATE_CONFIGS.push(newConfig);
+        safeSetItem(newConfig.key, content);
+        count++;
+      });
+      // 持久化并刷新管理界面
+      saveTemplateConfigs();
+      renderManagerList();
+      showSnackbar(formatText(TEXTS.snackbarArg_IoImportDone, { count: count }));
+    }
+
+    // -------------------- 清除 --------------------
+    // 清空 JSON 输入区内容；与"复制"同理为辅助清理操作，直接清空不做确认。
+    function ioClearJsonTextarea() {
+      if (!ioJsonTextarea) return;
+      ioJsonTextarea.value = '';
+      autoGrowIoTextarea();
+      ioJsonTextarea.scrollTop = 0;
+      ioJsonTextarea.focus();
+    }
+
+    // -------------------- 复制 --------------------
+    // 仅当有内容时才复制；无内容时不做任何响应。
+    function ioCopyTextarea() {
+      if (!ioJsonTextarea) return;
+      const value = ioJsonTextarea.value;
+      if (!value) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(value)
+          .then(() => showSnackbar(TEXTS.snackbar_Copied))
+          .catch(err => { console.error('Failed to copy:', err); showSnackbar(TEXTS.snackbar_CopyFailed); });
+      } else {
+        showSnackbar(TEXTS.snackbar_CopyFailed);
+      }
+    }
+
+
+    // 1. 初始化指示器位置
+    const indicator = document.querySelector('.tab-indicator');
+    
+    function updateIndicator(btn) {
+      if (!btn || !indicator) return;
+      indicator.style.width = `${btn.offsetWidth}px`;
+      indicator.style.transform = `translateX(${btn.offsetLeft}px)`;
+    }
+
+    // 2. Tab 点击逻辑（事件委托；当前为单 Tab 架构，无实际切换目标）
+    document.querySelector('.tabs-wrapper').addEventListener('click', (e) => {
+      const tabBtn = e.target.closest('.tab-btn');
+      if (!tabBtn) return;
+
+      // 单 Tab 架构：不存在其他可切换的 Tab，命中当前 Tab 即返回
+      if (tabBtn.dataset.target === currentTab) return;
+    });
+
+    // 3. Textarea 自动增高 & 实时字数统计
+    function setupTextarea(textareaId, countId) {
+      const ta = document.getElementById(textareaId);
+      const countEl = document.getElementById(countId);
+      if (!ta || !countEl) return;
+
+      ta.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = this.scrollHeight + 'px';
+        countEl.textContent = this.value.length;
+        // if (textareaId === 'main-textarea') {
+        //   updateExtraCount();
+        // }
+      });
+    }
+
+    // // 更新额外计数 (main_count + settings_count - '${user_input}'.length):停止使用@v1.2
+    // function updateExtraCount() {
+    //   const mainCount = parseInt(document.getElementById('main-count').textContent) || 0;
+    //   let strExtraCount = '';
+      
+    //   TEMPLATE_CONFIGS.forEach(cfg => {
+    //     const settingsCount = parseInt(document.getElementById(cfg.countId).textContent) || 0;
+    //     const extraCount = mainCount + settingsCount - INT_USER_INPUT_MARK_LEN;
+    //     strExtraCount += extraCount + ', ';
+    //   });
+      
+    //   if (strExtraCount.length > 2) {
+    //     strExtraCount = strExtraCount.substr(0, strExtraCount.length - 2);
+    //   }
+    //   document.getElementById('main-extra-count').textContent = ' (' + strExtraCount + ')';
+    // }
+
+    // 4. Ripple 效果（绿色按钮）
+    function createRipple(event) {
+      const button = event.currentTarget;
+      const circle = document.createElement('span');
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+      circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+      circle.classList.add('ripple');
+
+      const existingRipple = button.getElementsByClassName('ripple')[0];
+      if (existingRipple) existingRipple.remove();
+
+      button.appendChild(circle);
+    }
+
+    // 5. 回到顶部 FAB
+    const fabTop = document.getElementById('fabTop');
+    // 模板管理界面专用的回到顶部 FAB：
+    // mgr-overlay 的 z-index(150) 高于主 fabTop(100)，管理界面打开时主FAB会被遮罩挡住，
+    // 因此使用独立的 mgrFabTop(z-index:160) 来响应管理界面的滚动
+    const mgrFabTop = document.getElementById('mgrFabTop');
+    // 排序界面专用的回到顶部 FAB：
+    // sort-overlay 的 z-index 同为 150，排序界面打开时由独立的 sortFabTop(z-index:160) 响应排序页滚动
+    const sortFabTop = document.getElementById('sortFabTop');
+
+    function toggleFab() {
+      if (ioOverlay && ioOverlay.classList.contains('active')) {
+        // 导出/导入界面打开时：隐藏其余FAB（都会被遮罩挡住），由 io 专用FAB响应滚动
+        fabTop.classList.remove('visible');
+        mgrFabTop.classList.remove('visible');
+        sortFabTop.classList.remove('visible');
+        if (ioFabTop) {
+          if (ioOverlay.scrollTop > 100) { ioFabTop.classList.add('visible'); }
+          else { ioFabTop.classList.remove('visible'); }
+        }
+      } else if (sortOverlay && sortOverlay.classList.contains('active')) {
+        // 排序界面打开时：隐藏主FAB与管理界面FAB（都会被遮罩挡住），由排序界面专用FAB响应滚动
+        fabTop.classList.remove('visible');
+        mgrFabTop.classList.remove('visible');
+        if (ioFabTop) ioFabTop.classList.remove('visible');
+        if (sortOverlay.scrollTop > 100) {
+          sortFabTop.classList.add('visible');
+        } else {
+          sortFabTop.classList.remove('visible');
+        }
+      } else if (mgrOverlay && mgrOverlay.classList.contains('active')) {
+        // 模板管理界面打开时：隐藏主FAB（会被遮罩挡住），由管理界面专用FAB响应滚动
+        fabTop.classList.remove('visible');
+        sortFabTop.classList.remove('visible');
+        if (ioFabTop) ioFabTop.classList.remove('visible');
+        if (mgrOverlay.scrollTop > 100) {
+          mgrFabTop.classList.add('visible');
+        } else {
+          mgrFabTop.classList.remove('visible');
+        }
+      } else {
+        // 主界面：隐藏管理界面/排序界面专用FAB，主FAB响应窗口滚动
+        mgrFabTop.classList.remove('visible');
+        sortFabTop.classList.remove('visible');
+        if (ioFabTop) ioFabTop.classList.remove('visible');
+        if (window.scrollY > 100) {
+          fabTop.classList.add('visible');
+        } else {
+          fabTop.classList.remove('visible');
+        }
+      }
+    }
+
+    window.addEventListener('scroll', toggleFab);
+    toggleFab();
+
+    function scrollToTop() {
+      // 模板管理界面打开时，滚动管理界面到顶部
+      if (mgrOverlay && mgrOverlay.classList.contains('active')) {
+        mgrOverlay.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    // 6. Dialog 确认框
+    const dialogOverlay = document.getElementById('dialogOverlay');
+    let currentDialogAction = '';
+
+    // ==================== Dialog 预设配置（重构：将 openDialog 中的 if-else 分支收敛为配置表） ====================
+    // 原实现为 openDialog 内按 action 展开的 if-else 链；
+    // 现将每种对话框的标题、正文及UI显示配置收敛到 DIALOG_PRESETS，
+    // 新增对话框类型时只需在表中增加一条配置，无需改动 openDialog 主流程。
+    // 字段说明：
+    //   title        : 标题（统一用函数形式，便于语言切换后取 TEXTS 的最新值）
+    //   messageText  : 正文（纯文本），可为 string 或 function(tabId)
+    //   messageHtml  : 正文（含HTML的富文本），同上；优先于 messageText
+    //   onOpen       : 打开对话框时执行的自定义逻辑，入参为 tabId
+
+    // 按 tabId 查找模板配置（供对话框预设使用）
+    function getTemplateByTabId(tabId) {
+      if (!tabId) return null;
+      return TEMPLATE_CONFIGS.find(c => c.tabId === tabId) || null;
+    }
+
+
+    const DIALOG_PRESETS = {
+      // 保存模板内容
+      save: {
+        title: () => TEXTS.dialogTitle_Save,
+        messageText: (tabId) => {
+          const config = getTemplateByTabId(tabId);
+          return config ? formatText(TEXTS.dialogArgMsg_Save, { name: config.name }) : TEXTS.dialogMsg_SaveTemplate;
+        }
+      },
+      // 回退单个模板内容到最近一次已保存内容
+      revert: {
+        title: () => TEXTS.dialogTitle_Revert,
+        messageText: (tabId) => {
+          const config = getTemplateByTabId(tabId);
+          return config ? formatText(TEXTS.dialogArgMsg_Revert, { name: config.name }) : TEXTS.dialogMsg_RevertTemplate;
+        }
+      },
+      // 删除模板确认
+      delete_confirm: {
+        title: () => TEXTS.dialogTitle_DeleteConfirm,
+        messageText: (tabId) => {
+          const config = getTemplateByTabId(tabId);
+          return config ? formatText(TEXTS.dialogArgMsg_DeleteConfirm, { name: config.name }) : TEXTS.dialogMsg_DeleteTemplate;
+        }
+      },
+      // 新模板确认对话框
+      add_tab: {
+        title: () => TEXTS.dialogTitle_AddTab,
+        messageText: () => TEXTS.dialogMsg_AddTab
+      },
+      // 重置所有配置确认对话框
+      reset_all: {
+        title: () => TEXTS.dialogTitle_ResetDefault,
+        messageHtml: () => TEXTS.dialogMsg_ResetDefault
+      },
+      // 导入确认对话框
+      io_import_confirm: {
+        title: () => TEXTS.dialogTitle_ImportConfirm,
+        messageText: () => pendingIoImportList
+          ? formatText(TEXTS.dialogArgMsg_IoImportConfirm, { count: pendingIoImportList.length })
+          : TEXTS.dialogMsg_Confirm
+      },
+      // 清除主输入框确认（防止误触清除按钮）
+      clear_confirm: {
+        title: () => TEXTS.dialogTitle_Confirm,
+        messageText: () => TEXTS.dialogMsg_ClearConfirm
+      },
+      // 默认预设：通用确认
+      confirm: {
+        title: () => TEXTS.dialogTitle_Confirm,
+        messageText: () => TEXTS.dialogMsg_Confirm
+      }
+    };
+
+    function openDialog(action, event, tabId = null) {
+      currentDialogAction = action;
+      currentDialogTabId = tabId;
+      const titleEl = document.querySelector('.dialog-title');
+      const msgEl = document.querySelector('.dialog-message');
+      const cancelBtn = document.getElementById('dialog-cancel-btn');
+
+      // 重置状态
+      cancelBtn.style.display = 'inline-flex';
+
+      // 读取 action 对应的预设配置（未登记的动作回退到默认confirm预设）
+      const preset = DIALOG_PRESETS[action] || DIALOG_PRESETS.confirm;
+
+      // 标题
+      titleEl.textContent = preset.title();
+
+      // 正文内容（messageHtml 优先于 messageText）
+      if (preset.messageHtml !== undefined) {
+        msgEl.innerHTML = typeof preset.messageHtml === 'function' ? preset.messageHtml(tabId) : preset.messageHtml;
+      } else if (preset.messageText !== undefined) {
+        msgEl.textContent = typeof preset.messageText === 'function' ? preset.messageText(tabId) : preset.messageText;
+      }
+
+      // 自定义的打开逻辑
+      if (typeof preset.onOpen === 'function') preset.onOpen(tabId);
+
+      dialogOverlay.classList.add('active');
+      dialogOverlay.classList.remove('shake');
+      if (event) createRipple(event);
+    }
+
+    function closeDialog() {
+      dialogOverlay.classList.remove('active');
+      dialogOverlay.classList.remove('shake');
+      currentDialogTabId = null;
+    }
+
+    function confirmDialog(event) {
+      createRippleText(event);
+
+      if (currentDialogAction === 'save') {
+        const config = TEMPLATE_CONFIGS.find(c => c.tabId === currentDialogTabId);
+        if (!config) return;
+        
+        // 使用管理界面的 textarea
+        const content = mgrTextarea ? mgrTextarea.value : '';
+        
+        const success = safeSetItem(config.key, content);
+        showSnackbar(success ? formatText(TEXTS.snackbarArgMsg_ContentSaved, { name: config.name }) : TEXTS.snackbar_SaveFailed);
+        
+        // 更新管理界面状态
+        if (success) {
+          currentBaselineContent = content;
+          delete unsavedDrafts[currentDialogTabId];
+          // 编辑时间戳仅在"保存"按钮（btnMgrSave）流程且保存成功时写入，
+          // 并随 TEMPLATE_CONFIGS 一并持久化到 localStorage（LS_TEMPLATE_CONFIGS_META）
+          config.editTime = formatEditTimestamp();
+          saveTemplateConfigs();
+          renderManagerList();
+          updateManagerDirtyState();
+        }
+      } else if (currentDialogAction === 'revert') {
+        const config = TEMPLATE_CONFIGS.find(c => c.tabId === currentDialogTabId);
+        if (!config) return;
+        
+        // 使用管理界面的 textarea
+        if (mgrTextarea) {
+            const baselineContent = getTemplateBaselineContent(config);
+            if (mgrTextarea.value === baselineContent && unsavedDrafts[currentDialogTabId] === undefined) {
+                showSnackbar(TEXTS.snackbar_NoUnsavedChanges);
+            }
+            else {
+                mgrTextarea.value = baselineContent;
+                delete unsavedDrafts[currentDialogTabId];
+                currentBaselineContent = baselineContent;
+                mgrTextarea.dispatchEvent(new Event('input'));
+                showSnackbar(formatText(TEXTS.snackbarArgMsg_RevertDone, { name: config.name }));
+                
+                // 更新管理界面状态
+                renderManagerList();
+                updateManagerDirtyState();
+            }
+        }
+
+      } else if (currentDialogAction === 'delete_confirm') {
+        if (currentDialogTabId) {
+          deleteTemplate(currentDialogTabId);
+        }
+        closeDialog();
+        return;
+      } else if (currentDialogAction === 'add_tab') {
+        executeAddNewTab();
+        closeDialog();
+        return;
+      } else if (currentDialogAction === 'reset_all') {
+        executeResetToDefault();
+        closeDialog();
+        return;
+      } else if (currentDialogAction === 'clear_confirm') {
+        // 清除主输入框内容
+        clearMainTextarea();
+        closeDialog();
+        return;
+      } else if (currentDialogAction === 'io_import_confirm') {
+        // 确认导入——将暂存的模板列表全部作为新模板追加
+        ioExecuteImport(pendingIoImportList || []);
+        pendingIoImportList = null;
+        closeDialog();
+        return;
+      }
+
+      setTimeout(() => closeDialog(), 300);
+    }
+
+    function handleOverlayClick(event) {
+      if (event.target === dialogOverlay) {
+        dialogOverlay.classList.add('shake');
+        setTimeout(() => dialogOverlay.classList.remove('shake'), 400);
+      }
+    }
+
+    // Text 按钮 ripple
+    function createRippleText(event) {
+      const button = event.currentTarget;
+      const circle = document.createElement('span');
+      const diameter = Math.max(button.clientWidth, button.clientHeight);
+      const radius = diameter / 2;
+
+      circle.style.width = circle.style.height = `${diameter}px`;
+      circle.style.left = `${event.clientX - button.getBoundingClientRect().left - radius}px`;
+      circle.style.top = `${event.clientY - button.getBoundingClientRect().top - radius}px`;
+      circle.classList.add('ripple-text');
+
+      const existingRipple = button.getElementsByClassName('ripple-text')[0];
+      if (existingRipple) existingRipple.remove();
+
+      button.appendChild(circle);
+    }
+
+    // 为 dialog 按钮绑定 ripple
+    document.querySelectorAll('.v-btn-text').forEach(btn => {
+      btn.addEventListener('click', createRippleText);
+    });
+
+    // 7. 底部 Drawer
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const drawerTextarea = document.getElementById('drawer-textarea');
+
+    // 更新 drawer textarea 字数统计
+    function updateDrawerCharCount() {
+      const countEl = document.getElementById('drawer-char-count');
+      if (countEl && drawerTextarea) countEl.textContent = drawerTextarea.value.length;
+    }
+
+    // 自动增高 drawer textarea
+    function autoGrowDrawerTextarea() {
+      if (!drawerTextarea) return;
+      drawerTextarea.style.height = 'auto';
+      drawerTextarea.style.height = drawerTextarea.scrollHeight + 'px';
+    }
+
+    function openDrawer() {
+      drawerOverlay.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      autoGrowDrawerTextarea();
+      updateDrawerCharCount();
+      setTimeout(initDrawerTopBtn, 50);
+    }
+
+    function closeDrawer() {
+      drawerOverlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    function handleDrawerOverlayClick(event) {
+      if (event.target === drawerOverlay) {
+        closeDrawer();
+      }
+    }
+
+    // Drawer 滚动到顶部功能
+    const drawerTopBtn = document.getElementById('drawerTopBtn');
+    const drawerContent = document.querySelector('.drawer-content');
+
+    if (drawerTopBtn) {
+      drawerTopBtn.addEventListener('click', function() {
+        if (drawerContent) drawerContent.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
+    // 监听 drawer-content 滚动，控制 drawerTopBtn 显示/隐藏
+    if (drawerContent) {
+      drawerContent.addEventListener('scroll', function() {
+        if (drawerContent.scrollTop > 30) {
+          drawerTopBtn.style.opacity = '1';
+          drawerTopBtn.style.pointerEvents = 'auto';
+        } else {
+          drawerTopBtn.style.opacity = '0';
+          drawerTopBtn.style.pointerEvents = 'none';
+        }
+      });
+    }
+
+    // 初始化：drawer 打开时检查一次
+    function initDrawerTopBtn() {
+      if (!drawerContent || !drawerTopBtn) return;
+      if (drawerContent.scrollTop > 30) {
+        drawerTopBtn.style.opacity = '1';
+        drawerTopBtn.style.pointerEvents = 'auto';
+      } else {
+        drawerTopBtn.style.opacity = 0;
+        drawerTopBtn.style.pointerEvents = 'none';
+      }
+    }
+
+    // Snackbar 功能
+    const snackbar = document.getElementById('snackbar');
+    let snackbarTimer = null;
+
+    function getSnackbarText() {
+      return document.getElementById('snackbar-text');
+    }
+
+    function showSnackbar(message) {
+      const snackbarText = getSnackbarText();
+      if (snackbarText) snackbarText.textContent = message;
+      // 重置 timer 动画
+      const timerBar = snackbar.querySelector('.snackbar-timer');
+      if (timerBar) {
+        const newTimer = timerBar.cloneNode(true);
+        timerBar.parentNode.replaceChild(newTimer, timerBar);
+      }
+
+      snackbar.classList.add('active');
+
+      if (snackbarTimer) clearTimeout(snackbarTimer);
+      snackbarTimer = setTimeout(() => {
+        snackbar.classList.remove('active');
+      }, 4000);
+    }
+
+    // Drawer 复制功能
+    const drawerCopyBtn = document.getElementById('drawerCopyBtn');
+    if (drawerCopyBtn) {
+      drawerCopyBtn.addEventListener('click', function() {
+        if (navigator.clipboard && navigator.clipboard.writeText && drawerTextarea) {
+          navigator.clipboard.writeText(drawerTextarea.value)
+            .then(() => showSnackbar(TEXTS.snackbar_Copied))
+            .catch(err => {
+              console.error('Failed to copy:', err);
+              showSnackbar(TEXTS.snackbar_CopyFailed);
+            });
+        } else {
+          showSnackbar(TEXTS.snackbar_CopyFailed);
+        }
+      });
+    }
+
+    // ESC 关闭 drawer、确认对话框、模板选择对话框、排序界面 或 manager
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        const tplSelectOverlay = document.getElementById('tplSelectOverlay');
+        if (drawerOverlay.classList.contains('active')) {
+          closeDrawer();
+        } else if (dialogOverlay.classList.contains('active')) {
+          // 确认对话框（z-index:200）优先于其下层的 io/排序/管理界面关闭；
+          // 否则导入确认框打开时按 ESC 会误关闭下层 io 页面而留下对话框
+          closeDialog();
+        } else if (tplSelectOverlay && tplSelectOverlay.classList.contains('active')) {
+          // 模板选择对话框（组装 Prompt）
+          closeTplSelectDialog();
+        } else if (ioOverlay && ioOverlay.classList.contains('active')) {
+          // 导出/导入界面（位于排序/管理界面之上）优先关闭
+          closeIoPage();
+        } else if (sortOverlay && sortOverlay.classList.contains('active')) {
+          // 排序界面优先于其底层的管理界面关闭
+          closeSortPage();
+        } else if (mgrOverlay && mgrOverlay.classList.contains('active')) {
+          closeManager();
+        }
+      }
+    });
+
+    // ==================== 清除主输入框内容 ====================
+    // 清除请求入口：先判断输入框是否为空，为空则不响应（不弹出确认框）
+    function requestClearMainTextarea(event) {
+      const textarea = document.getElementById('main-textarea');
+      if (!textarea || textarea.value === '') {
+        return;
+      }
+      openDialog('clear_confirm', event);
+    }
+
+    function clearMainTextarea() {
+      const textarea = document.getElementById('main-textarea');
+      if (textarea) {
+        textarea.value = '';
+        textarea.dispatchEvent(new Event('input')); // 触发input事件以更新字数统计和自动调整高度
+        textarea.focus();
+      }
+    }
+
+    // ==================== 组装 Prompt 功能（含空值检查） ====================
+    function assemblePrompt() {
+      const userInput = document.getElementById('main-textarea').value.trim();
+      if (!userInput) {
+        showSnackbar(TEXTS.snackbar_QuestionEmpty);
+        document.getElementById('main-textarea').focus();
+        return;
+      }
+      // 弹出独立的模板选择 Dialog（宽度限制 + 标题行按钮）
+      openTplSelectDialog(event);
+    }
+
+    // （宽度限制与 main-container 同步，操作按钮位于标题行右侧）
+    // 点击遮罩不关闭（与原共用 dialog 行为一致），仅通过取消/确认/ESC 关闭
+    function buildTplSelectChipGroup() {
+      const chipGroup = document.getElementById('tpl-select-chip-group');
+      if (!chipGroup) return;
+      chipGroup.innerHTML = '';
+      TEMPLATE_CONFIGS.forEach((cfg, idx) => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = cfg.name;
+        chip.dataset.index = idx;
+        chip.dataset.tabId = cfg.tabId;
+        chip.addEventListener('click', function() {
+          chipGroup.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+          this.classList.add('selected');
+          selectedTemplateIndexForAssemble = idx;
+        });
+        chipGroup.appendChild(chip);
+      });
+
+      // 恢复上次选中的template
+      if (lastSelectedTemplateTabId !== null) {
+        const chip = chipGroup.querySelector(`.chip[data-tab-id="${lastSelectedTemplateTabId}"]`);
+        if (chip) {
+          chip.classList.add('selected');
+          selectedTemplateIndexForAssemble = parseInt(chip.dataset.index, 10);
+        }
+      }
+    }
+
+    function openTplSelectDialog(event) {
+      const overlay = document.getElementById('tplSelectOverlay');
+      if (!overlay) return;
+      buildTplSelectChipGroup();
+      // 显示位置：以 #main-textarea 当前视口顶边作为对话框的顶部边距
+      // （其顶边位于 #btn-assemble 按钮下方一点，与期望的出现位置一致）；
+      // 下钳 24px 防止页面已向下滚动后卡片贴近视窗顶端，
+      // 上钳至视窗高度 40% 保证极端布局下卡片顶部仍停留在视口上半区；
+      // 取不到锚点时清除属性，由 CSS 回退 var(--tpl-select-top, 191px)
+      overlay.style.removeProperty('--tpl-select-top');
+      const anchorEl = document.getElementById('main-textarea');
+      if (anchorEl) {
+        const anchorTop = anchorEl.getBoundingClientRect().top;
+        const clampedTop = Math.min(Math.max(anchorTop, 24), window.innerHeight * 0.4);
+        overlay.style.setProperty('--tpl-select-top', clampedTop + 'px');
+      }
+      overlay.classList.add('active');
+      overlay.classList.remove('shake');
+      if (event) createRipple(event);
+    }
+
+    function closeTplSelectDialog() {
+      const overlay = document.getElementById('tplSelectOverlay');
+      if (!overlay) return;
+      overlay.classList.remove('active');
+      overlay.classList.remove('shake');
+      selectedTemplateIndexForAssemble = null;
+    }
+
+    function confirmTplSelectDialog(event) {
+      createRippleText(event);
+      if (selectedTemplateIndexForAssemble === null) {
+        showSnackbar(TEXTS.snackbar_SelectTemplateFirst);
+        return;
+      }
+      const config = TEMPLATE_CONFIGS[selectedTemplateIndexForAssemble];
+      if (!config) return;
+      // 记忆选中的模板
+      lastSelectedTemplateTabId = config.tabId;
+      const content = safeGetItem(config.key);
+      if (!content) {
+        showSnackbar(TEXTS.snackbar_TemplateEmpty);
+        return;
+      }
+      const userInput = document.getElementById('main-textarea').value.trim();
+      // 替换模板中所有 ${user_input} 标记
+      const assembled = content.split('${user_input}').join(userInput);
+      document.getElementById('drawer-textarea').value = assembled;
+      closeTplSelectDialog();
+      openDrawer();
+    }
+
+    function handleTplSelectOverlayClick(event) {
+      const overlay = document.getElementById('tplSelectOverlay');
+      if (event.target === overlay) {
+        overlay.classList.add('shake');
+        setTimeout(() => overlay.classList.remove('shake'), 400);
+      }
+    }
+
+    // ==================== 回退前检查（有内容变动时才弹出确认对话框） ====================
+    function checkAndRequestRevert(tabId, event) {
+      const config = TEMPLATE_CONFIGS.find(c => c.tabId === tabId);
+      if (!config) return;
+      
+      // 检查是否有未保存的草稿，或当前编辑区内容是否与基线不一致
+      const hasUnsavedChanges = (unsavedDrafts[tabId] !== undefined) || (mgrTextarea && mgrTextarea.value !== currentBaselineContent);
+      
+      if (!hasUnsavedChanges) {
+        showSnackbar(TEXTS.snackbar_NoUnsavedChanges);
+        return;
+      }
+      
+      openDialog('revert', event, tabId);
+    }
+
+    // ==================== 保存前检查（空值 + 拼接记号检查） ====================
+    function checkAndOpenSaveDialog(tabId, event) {
+      const config = TEMPLATE_CONFIGS.find(c => c.tabId === tabId);
+      if (!config) return;
+      
+      // 使用管理界面的 textarea
+      const content = mgrTextarea ? mgrTextarea.value : '';
+      
+      if (!content.trim()) {
+        // 恢复为保存的内容或默认内容
+        const baselineContent = getTemplateBaselineContent(config);
+        if (mgrTextarea) {
+          mgrTextarea.value = baselineContent;
+          currentBaselineContent = baselineContent;
+          delete unsavedDrafts[tabId];
+          mgrTextarea.dispatchEvent(new Event('input'));
+        }
+        showSnackbar(TEXTS.snackbar_EmptyTemplateCannotSave);
+        return;
+      }
+      if (!content.includes('${user_input}')) {
+        showSnackbar(TEXTS.snackbar_MissingUserInputMark);
+        return;
+      }
+      openDialog('save', event, tabId);
+    }
+
+    // ==================== 插入 ${user_input} 标记  ====================
+    function insertUserInputMarkAtCursor() {
+      // 保护条件:仅在模板编辑区当前持有焦点时执行
+      if (!mgrTextarea || document.activeElement !== mgrTextarea) return;
+
+      const marker = '${user_input}';
+      const start = mgrTextarea.selectionStart;
+      const end = mgrTextarea.selectionEnd;
+      // 若存在选中文本,标记将替换选中部分(与常规编辑器的工具栏插入行为一致)
+      mgrTextarea.value = mgrTextarea.value.slice(0, start) + marker + mgrTextarea.value.slice(end);
+
+      // 插入后将光标置于标记之后
+      const caret = start + marker.length;
+      mgrTextarea.setSelectionRange(caret, caret);
+      mgrTextarea.focus();
+
+      // 触发 input 事件:同步更新字数统计、自动增高与未保存状态(与用户键入时同一条更新路径)
+      mgrTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+
+    // ==================== 页面初始化 ====================
+    document.addEventListener('DOMContentLoaded', () => {
+      // 0. 应用i18n文字
+      applyTexts();
+      
+      // 1. 加载配置
+      loadTemplateConfigs();
+      
+      // 2. 初始化管理界面元素引用
+      mgrOverlay = document.getElementById('mgrOverlay');
+      if (mgrOverlay) {
+        // 监听管理界面滚动，更新回到顶部按钮状态
+        mgrOverlay.addEventListener('scroll', toggleFab);
+      }
+      // 初始化排序界面元素引用
+      sortOverlay = document.getElementById('sortOverlay');
+      sortListEl = document.getElementById('sortList');
+      if (sortOverlay) {
+        // 监听排序界面滚动，更新回到顶部按钮状态
+        sortOverlay.addEventListener('scroll', toggleFab);
+      }
+      // 初始化导出/导入界面元素引用
+      ioOverlay = document.getElementById('ioOverlay');
+      ioJsonTextarea = document.getElementById('ioJsonTextarea');
+      ioFabTop = document.getElementById('ioFabTop');
+      if (ioOverlay) {
+        // 监听导出/导入界面滚动，更新回到顶部按钮状态
+        ioOverlay.addEventListener('scroll', toggleFab);
+      }
+      if (ioJsonTextarea) {
+        // 输入/粘贴时自动增高
+        ioJsonTextarea.addEventListener('input', autoGrowIoTextarea);
+      }
+      mgrTextarea = document.getElementById('mgrTemplateTextarea');
+      mgrNameInput = document.getElementById('tplNameInput');
+      mgrTemplateCountEl = document.getElementById('mgrTemplateCount');
+      tplListEl = document.getElementById('tplList');
+      tplNameCountEl = document.getElementById('tplNameCount');
+      managerTemplateCountEl = document.getElementById('managerTemplateCount');
+      btnEditName = document.getElementById('btnEditName');
+      btnSaveName = document.getElementById('btnSaveName');
+      btnDeleteTemplate = document.getElementById('btnDeleteTemplate');
+      btnRevertName = document.getElementById('btnRevertName');
+      
+      // 3. 初始化管理界面 textarea 事件（自动增高 + 字数统计 + 脏状态）
+      if (mgrTextarea) {
+        mgrTextarea.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = this.scrollHeight + 'px';
+          if (mgrTemplateCountEl) mgrTemplateCountEl.textContent = this.value.length;
+          updateManagerDirtyState();
+        });
+      }
+      
+      // 4. 初始化管理界面名称输入框事件
+      if (mgrNameInput) {
+        mgrNameInput.addEventListener('input', function() {
+          updateNameCount();
+          updateManagerDirtyState();
+        });
+      }
+      
+      // 5. 渲染管理界面列表（初始化localStorage）
+      renderSettingsTabs();
+      
+      // 6. 初始化main textarea
+      setupTextarea('main-textarea', 'main-count');
+      
+      // 7. 初始化指示器位置
+      const activeBtn = document.querySelector('.tab-btn.active');
+      if (activeBtn) updateIndicator(activeBtn);
+      
+      // 8. 窗口大小改变时更新指示器
+      window.addEventListener('resize', () => {
+        const active = document.querySelector('.tab-btn.active');
+        if (active) updateIndicator(active);
+      });
+      
+      // // 9. 初始化额外计数：停止使用@v1.2
+      // updateExtraCount();
+    });
+  </script>
+</body>
+</html>
